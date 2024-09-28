@@ -27,6 +27,20 @@ exports.createPost = [
   }),
 ];
 
+exports.getPost = asyncHandler(async (req, res, next) => {
+  const post = await prisma.post.findUnique({
+    where: { id: parseInt(req.params.postId, 10) },
+
+    include: {
+      author: true,
+      likes: true,
+      comments: { include: { user: true } },
+    },
+  });
+
+  return res.json({ post });
+});
+
 exports.likePost = asyncHandler(async (req, res, next) => {
   const post = await prisma.post.update({
     where: { id: parseInt(req.params.postId, 10) },

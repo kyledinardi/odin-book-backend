@@ -11,6 +11,7 @@ router.post('/users/login', userController.login);
 router.use(passport.authenticate('jwt', { session: false }));
 
 router.post('/posts', postController.createPost);
+router.get('/posts/:postId', postController.getPost);
 router.put('/posts/:postId', postController.likePost);
 
 router.post('/posts/:postId/comments', commentController.createComment);
