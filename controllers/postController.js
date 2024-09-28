@@ -20,8 +20,19 @@ exports.createPost = [
 
     const post = await prisma.post.create({
       data: { text, author: { connect: { id: req.user.id } } },
+      include: { author: true },
     });
 
     return res.json({ post });
   }),
 ];
+
+exports.likePost = asyncHandler(async (req, res, next) => {
+  const post = await prisma.post.update({
+    where: { id: parseInt(req.params.postId, 10) },
+    data: { likes: { connect: { id: req.user.id } } },
+    include: { likes: true },
+  });
+
+  return res.json({ post });
+});
