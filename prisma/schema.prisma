@@ -11,7 +11,7 @@ model User {
   id           Int       @id @default(autoincrement())
   username     String    @unique
   passwordHash String
-  pfpUrl       String    @default("https://res.cloudinary.com/dhg8qxkfc/image/upload/v1722008094/fvgrcexpgvimfjfp3uj4.webp")
+  pfpUrl       String
   bio          String?
   followers    User[]    @relation("followers")
   following    User[]    @relation("followers")

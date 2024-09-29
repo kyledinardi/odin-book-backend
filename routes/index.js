@@ -11,7 +11,8 @@ router.post('/users/login', userController.login);
 
 router.use(passport.authenticate('jwt', { session: false }));
 router.put('/users/follow', userController.follow);
-router.put('/users/profile', userController.updateProfile);
+router.put('/users/bio', userController.updateBio);
+router.put('/users/pfp', userController.updatePfp);
 
 router.post('/posts', postController.createPost);
 router.get('/posts', postController.getIndexPosts);

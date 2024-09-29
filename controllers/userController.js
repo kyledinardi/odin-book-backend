@@ -1,21 +1,23 @@
-// const multer = require('multer');
+const multer = require('multer');
 const asyncHandler = require('express-async-handler');
 const { body, validationResult } = require('express-validator');
-// const { unlink } = require('fs/promises');
-// const cloudinary = require('cloudinary').v2;
+const { unlink } = require('fs/promises');
+const Crypto = require('crypto');
+const cloudinary = require('cloudinary').v2;
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 
-// const storage = multer.diskStorage({
-//   destination: 'uploads/',
-//   filename(req, file, cb) {
-//     cb(null, `${req.user.id}.${file.originalname.split('.').pop()}`);
-//   },
-// });
+const storage = multer.diskStorage({
+  destination: 'uploads/',
 
-// const upload = multer({ storage });
+  filename(req, file, cb) {
+    cb(null, `${crypto.randomUUID()}.${file.originalname.split('.').pop()}`);
+  },
+});
+
+const upload = multer({ storage });
 const prisma = new PrismaClient();
 
 exports.createUser = [
@@ -47,12 +49,17 @@ exports.createUser = [
       return res.status(400).json({ errors: errors.array() });
     }
 
+    const usernameHash = Crypto.createHash('sha256')
+      .update(req.body.username.toLowerCase())
+      .digest('hex');
+
     const passwordHash = await bcrypt.hash(req.body.password, 10);
 
     const user = await prisma.user.create({
       data: {
         username: req.body.username,
         passwordHash,
+        pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
       },
     });
 
@@ -98,7 +105,7 @@ exports.follow = asyncHandler(async (req, res, next) => {
   return res.json({ user });
 });
 
-exports.updateProfile = [
+exports.updateBio = [
   body('bio').trim(),
 
   asyncHandler(async (req, res, next) => {
@@ -106,6 +113,25 @@ exports.updateProfile = [
       where: { id: req.user.id },
       data: { bio: req.body.bio },
     });
+
+    return res.json({ user });
+  }),
+];
+
+exports.updatePfp = [
+  upload.single('pfpUrl'),
+
+  asyncHandler(async (req, res, next) => {
+    const result = await cloudinary.uploader.upload(req.file.path);
+
+    const [user] = await Promise.all([
+      prisma.user.update({
+        where: { id: req.user.id },
+        data: { pfpUrl: result.secure_url },
+      }),
+
+      unlink(req.file.path),
+    ]);
 
     return res.json({ user });
   }),

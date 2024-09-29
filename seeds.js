@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { faker } = require('@faker-js/faker');
+const Crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
@@ -18,11 +19,18 @@ async function main() {
   const passwordHashes = await Promise.all(passwordHashPromises);
 
   for (let i = 0; i < 10; i += 1) {
+    const username = faker.internet.userName();
+
+    const usernameHash = Crypto.createHash('sha256')
+      .update(username.toLowerCase())
+      .digest('hex');
+
     userPromises.push(
       prisma.user.create({
         data: {
-          username: faker.internet.userName(),
+          username,
           passwordHash: passwordHashes[i],
+          pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
         },
       }),
     );
