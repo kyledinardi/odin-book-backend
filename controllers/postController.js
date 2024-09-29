@@ -27,6 +27,27 @@ exports.createPost = [
   }),
 ];
 
+exports.getIndexPosts = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    include: { following: true },
+  });
+
+  const followedIds = user.following.map((followedUser) => followedUser.id);
+
+  const posts = await prisma.post.findMany({
+    where: {
+      OR: [{ authorId: req.user.id }, { authorId: { in: followedIds } }],
+    },
+
+    include: { author: true, likes: true, comments: true },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+  });
+
+  return res.json({ posts });
+});
+
 exports.getPost = asyncHandler(async (req, res, next) => {
   const post = await prisma.post.findUnique({
     where: { id: parseInt(req.params.postId, 10) },

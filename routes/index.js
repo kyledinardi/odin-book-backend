@@ -13,6 +13,7 @@ router.use(passport.authenticate('jwt', { session: false }));
 router.put('/users/follow', userController.follow);
 
 router.post('/posts', postController.createPost);
+router.get('/posts', postController.getIndexPosts);
 router.get('/posts/:postId', postController.getPost);
 router.put('/posts/:postId', postController.likePost);
 
