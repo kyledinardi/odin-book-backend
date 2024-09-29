@@ -14,7 +14,7 @@ model User {
   pfpUrl       String    @default("https://res.cloudinary.com/dhg8qxkfc/image/upload/v1722008094/fvgrcexpgvimfjfp3uj4.webp")
   bio          String?
   followers    User[]    @relation("followers")
-  followedBy   User[]    @relation("followers")
+  following    User[]    @relation("followers")
   posts        Post[]    @relation("author")
   likedPosts   Post[]    @relation("likes")
   comments     Comment[]

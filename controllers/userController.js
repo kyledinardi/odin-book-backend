@@ -87,3 +87,13 @@ exports.login = [
     })(req, res, next);
   },
 ];
+
+exports.follow = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { following: { connect: { id: req.body.userId } } },
+    include: { following: true },
+  });
+
+  res.json({ user });
+});

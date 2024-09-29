@@ -8,7 +8,9 @@ const router = express.Router();
 
 router.post('/users', userController.createUser);
 router.post('/users/login', userController.login);
+
 router.use(passport.authenticate('jwt', { session: false }));
+router.put('/users/follow', userController.follow);
 
 router.post('/posts', postController.createPost);
 router.get('/posts/:postId', postController.getPost);
