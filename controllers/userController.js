@@ -95,6 +95,11 @@ exports.login = [
   },
 ];
 
+exports.getAllUsers = asyncHandler(async (req, res, next) => {
+  const users = await prisma.user.findMany({ orderBy: { username: 'asc' } });
+  return res.json({ users });
+});
+
 exports.follow = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.update({
     where: { id: req.user.id },

@@ -48,6 +48,15 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
   return res.json({ posts });
 });
 
+exports.getUserPosts = asyncHandler(async (req, res, next) => {
+  const posts = await prisma.post.findMany({
+    where: { id: req.user.id },
+    orderBy: { timestamp: 'desc' },
+  });
+
+  res.json({ posts });
+});
+
 exports.getPost = asyncHandler(async (req, res, next) => {
   const post = await prisma.post.findUnique({
     where: { id: parseInt(req.params.postId, 10) },

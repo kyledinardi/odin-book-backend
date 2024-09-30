@@ -15,7 +15,8 @@ router.put('/users/bio', userController.updateBio);
 router.put('/users/pfp', userController.updatePfp);
 
 router.post('/posts', postController.createPost);
-router.get('/posts', postController.getIndexPosts);
+router.get('/posts/index', postController.getIndexPosts);
+router.get('/posts/user', postController.getUserPosts);
 router.get('/posts/:postId', postController.getPost);
 router.put('/posts/:postId', postController.likePost);
 
