@@ -15,6 +15,7 @@ async function main() {
     passwordHashPromises.push(bcrypt.hash(faker.internet.password(), 10));
   }
 
+  passwordHashPromises.push(bcrypt.hash('1', 10));
   console.log('Hashing passwords...');
   const passwordHashes = await Promise.all(passwordHashPromises);
 
@@ -35,6 +36,18 @@ async function main() {
       }),
     );
   }
+
+  userPromises.push(
+    prisma.user.create({
+      data: {
+        username: 'Guest',
+        passwordHash: passwordHashes[10],
+
+        pfpUrl:
+          'https://www.gravatar.com/avatar/5ed8944a85a9763fd315852f448cb7de36c5e928e13b3be427f98f7dc455f141?d=identicon',
+      },
+    }),
+  );
 
   console.log('Creating users...');
   await Promise.all(userPromises);
