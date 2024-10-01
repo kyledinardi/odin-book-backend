@@ -100,6 +100,11 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
   return res.json({ users });
 });
 
+exports.getCurrentUser = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  return res.json({ user });
+});
+
 exports.follow = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.update({
     where: { id: req.user.id },

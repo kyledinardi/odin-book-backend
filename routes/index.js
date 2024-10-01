@@ -11,6 +11,7 @@ router.post('/users/login', userController.login);
 
 router.use(passport.authenticate('jwt', { session: false }));
 router.get('/users', userController.getAllUsers);
+router.get('/users/currentUser', userController.getCurrentUser);
 router.put('/users/follow', userController.follow);
 router.put('/users/bio', userController.updateBio);
 router.put('/users/pfp', userController.updatePfp);

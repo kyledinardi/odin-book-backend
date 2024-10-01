@@ -18,11 +18,11 @@ const prisma = new PrismaClient();
 
 exports.createPost = [
   upload.single('postImage'),
-  body('text', 'Post text must not be empty').trim().notEmpty(),
+  body('postText', 'Post text must not be empty').trim().notEmpty(),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
-    const { text } = req.body;
+    const text = req.body.postText;
     let imageUrl = null;
 
     if (!errors.isEmpty()) {
