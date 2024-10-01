@@ -115,6 +115,16 @@ exports.follow = asyncHandler(async (req, res, next) => {
   return res.json({ user });
 });
 
+exports.unfollow = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { following: { disconnect: { id: req.body.userId } } },
+    include: { following: true },
+  });
+
+  return res.json({ user });
+});
+
 exports.updateBio = [
   body('bio').trim(),
 
