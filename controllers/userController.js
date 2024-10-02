@@ -96,12 +96,25 @@ exports.login = [
 ];
 
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
-  const users = await prisma.user.findMany({ orderBy: { username: 'asc' } });
+  const users = await prisma.user.findMany({
+    where: { NOT: { id: req.user.id } },
+    orderBy: { username: 'asc' },
+  });
+
   return res.json({ users });
 });
 
 exports.getCurrentUser = asyncHandler(async (req, res, next) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+
+    include: {
+      followers: true,
+      following: true,
+      posts: { orderBy: { timestamp: 'desc' } },
+    },
+  });
+
   return res.json({ user });
 });
 

@@ -12,7 +12,7 @@ exports.createComment = [
     const { text } = req.body;
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ text, errors: errors.array() });
+      return res.status(400).json({ errors: errors.array() });
     }
 
     const comment = await prisma.comment.create({
@@ -22,7 +22,7 @@ exports.createComment = [
         post: { connect: { id: parseInt(req.params.postId, 10) } },
       },
 
-      include: { user: true, post: true },
+      include: { user: true },
     });
 
     return res.json({ comment });

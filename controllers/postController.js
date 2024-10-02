@@ -39,7 +39,7 @@ exports.createPost = [
 
     const post = await prisma.post.create({
       data: { text, imageUrl, author: { connect: { id: req.user.id } } },
-      include: { author: true },
+      include: { author: true, likes: true, comments: true },
     });
 
     return res.json({ post });
@@ -59,11 +59,7 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
       OR: [{ authorId: req.user.id }, { authorId: { in: followedIds } }],
     },
 
-    include: {
-      author: true,
-      _count: { select: { likes: true, comments: true } },
-    },
-
+    include: { author: true, likes: true, comments: true },
     orderBy: { timestamp: 'desc' },
     take: 20,
   });
@@ -75,11 +71,7 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
     where: { id: req.user.id },
 
-    include: {
-      author: true,
-      _count: { select: { likes: true, comments: true } },
-    },
-    
+    include: { author: true, likes: true, comments: true },
     orderBy: { timestamp: 'desc' },
   });
 
@@ -93,7 +85,7 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     include: {
       author: true,
       likes: true,
-      comments: { include: { user: true } },
+      comments: { include: { user: true }, orderBy: { timestamp: 'desc' } },
     },
   });
 
@@ -104,6 +96,16 @@ exports.likePost = asyncHandler(async (req, res, next) => {
   const post = await prisma.post.update({
     where: { id: parseInt(req.params.postId, 10) },
     data: { likes: { connect: { id: req.user.id } } },
+    include: { likes: true },
+  });
+
+  return res.json({ post });
+});
+
+exports.unlikePost = asyncHandler(async (req, res, next) => {
+  const post = await prisma.post.update({
+    where: { id: parseInt(req.params.postId, 10) },
+    data: { likes: { disconnect: { id: req.user.id } } },
     include: { likes: true },
   });
 

@@ -22,7 +22,9 @@ router.post('/posts', postController.createPost);
 router.get('/posts/index', postController.getIndexPosts);
 router.get('/posts/user', postController.getUserPosts);
 router.get('/posts/:postId', postController.getPost);
-router.put('/posts/:postId', postController.likePost);
+
+router.put('/posts/:postId/like', postController.likePost);
+router.put('/posts/:postId/unlike', postController.unlikePost);
 
 router.post('/posts/:postId/comments', commentController.createComment);
 
