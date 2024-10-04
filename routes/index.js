@@ -12,6 +12,7 @@ router.post('/users/login', userController.login);
 router.use(passport.authenticate('jwt', { session: false }));
 router.get('/users', userController.getAllUsers);
 router.get('/users/currentUser', userController.getCurrentUser);
+router.get('/users/:userId', userController.getUser);
 
 router.put('/users/follow', userController.follow);
 router.put('/users/unfollow', userController.unfollow);
