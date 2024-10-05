@@ -107,12 +107,7 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
 exports.getCurrentUser = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
-
-    include: {
-      followers: true,
-      following: true,
-      posts: { orderBy: { timestamp: 'desc' } },
-    },
+    include: { following: true },
   });
 
   return res.json({ user });
@@ -122,12 +117,11 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: {
       id: parseInt(req.params.userId, 10),
+    },
 
-      include: {
-        followers: true,
-        following: true,
-        posts: { orderBy: { timestamp: 'desc' } },
-      },
+    include: {
+      followers: true,
+      following: true,
     },
   });
 
@@ -154,33 +148,25 @@ exports.unfollow = asyncHandler(async (req, res, next) => {
   return res.json({ user });
 });
 
-exports.updateBio = [
+exports.updateProfile = [
+  upload.single('pfp'),
   body('bio').trim(),
 
   asyncHandler(async (req, res, next) => {
+    let userData;
+
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path);
+      await unlink(req.file.path);
+      userData = { pfpUrl: result.secure_url, bio: req.body.bio };
+    } else {
+      userData = { bio: req.body.bio };
+    }
+
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { bio: req.body.bio },
+      data: userData,
     });
-
-    return res.json({ user });
-  }),
-];
-
-exports.updatePfp = [
-  upload.single('pfpUrl'),
-
-  asyncHandler(async (req, res, next) => {
-    const result = await cloudinary.uploader.upload(req.file.path);
-
-    const [user] = await Promise.all([
-      prisma.user.update({
-        where: { id: req.user.id },
-        data: { pfpUrl: result.secure_url },
-      }),
-
-      unlink(req.file.path),
-    ]);
 
     return res.json({ user });
   }),

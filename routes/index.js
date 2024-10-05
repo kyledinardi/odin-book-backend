@@ -16,12 +16,11 @@ router.get('/users/:userId', userController.getUser);
 
 router.put('/users/follow', userController.follow);
 router.put('/users/unfollow', userController.unfollow);
-router.put('/users/bio', userController.updateBio);
-router.put('/users/pfp', userController.updatePfp);
+router.put('/users/profile', userController.updateProfile);
 
 router.post('/posts', postController.createPost);
 router.get('/posts/index', postController.getIndexPosts);
-router.get('/posts/user', postController.getUserPosts);
+router.get('/posts/user/:userId', postController.getUserPosts);
 router.get('/posts/:postId', postController.getPost);
 
 router.put('/posts/:postId/like', postController.likePost);

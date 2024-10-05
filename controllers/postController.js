@@ -69,10 +69,11 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
 
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
-    where: { id: req.user.id },
+    where: { authorId: parseInt(req.params.userId, 10) },
 
     include: { author: true, likes: true, comments: true },
     orderBy: { timestamp: 'desc' },
+    take: 20,
   });
 
   res.json({ posts });
