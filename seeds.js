@@ -41,6 +41,7 @@ async function main() {
           username,
           passwordHash: passwordHashes[i],
           pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
+          bio: faker.lorem.sentence(),
         },
       }),
     );
