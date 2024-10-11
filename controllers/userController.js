@@ -21,6 +21,8 @@ const upload = multer({ storage });
 const prisma = new PrismaClient();
 
 exports.createUser = [
+  body('displayName').trim(),
+
   body('username')
     .trim()
     .notEmpty()
@@ -55,9 +57,13 @@ exports.createUser = [
 
     const passwordHash = await bcrypt.hash(req.body.password, 10);
 
+    const displayName =
+      req.body.displayName === '' ? req.body.username : req.body.displayName;
+
     const user = await prisma.user.create({
       data: {
         username: req.body.username,
+        displayName,
         passwordHash,
         pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
       },
@@ -153,14 +159,12 @@ exports.updateProfile = [
   body('bio').trim(),
 
   asyncHandler(async (req, res, next) => {
-    let userData;
+    const userData = { bio: req.body.bio, displayName: req.body.displayName };
 
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path);
       await unlink(req.file.path);
-      userData = { pfpUrl: result.secure_url, bio: req.body.bio };
-    } else {
-      userData = { bio: req.body.bio };
+      userData.pfpUrl = result.secure_url;
     }
 
     const user = await prisma.user.update({

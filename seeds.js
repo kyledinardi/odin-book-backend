@@ -29,7 +29,20 @@ async function main() {
   const passwordHashes = await Promise.all(passwordHashPromises);
 
   for (let i = 0; i < 10; i += 1) {
-    const username = i === 0 ? 'Guest' : faker.internet.userName();
+    let username;
+    let displayName;
+
+    if (i === 0) {
+      displayName = 'Guest';
+      username = 'Guest';
+    } else {
+      displayName = faker.person.fullName();
+
+      username = faker.internet.userName({
+        firstName: displayName.split(' ')[0],
+        lastName: displayName.split(' ')[1],
+      });
+    }
 
     const usernameHash = Crypto.createHash('sha256')
       .update(username.toLowerCase())
@@ -38,10 +51,11 @@ async function main() {
     userPromises.push(
       prisma.user.create({
         data: {
+          displayName,
           username,
           passwordHash: passwordHashes[i],
           pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
-          bio: faker.lorem.sentence(),
+          bio: faker.person.bio(),
         },
       }),
     );
