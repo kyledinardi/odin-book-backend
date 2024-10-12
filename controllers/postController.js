@@ -94,12 +94,45 @@ exports.getPost = asyncHandler(async (req, res, next) => {
 });
 
 exports.deletePost = asyncHandler(async (req, res, next) => {
-  const post = await prisma.post.delete({
+  const post = await prisma.post.findUnique({
     where: { id: parseInt(req.params.postId, 10) },
+  });
+
+  if (post.authorId !== req.user.id) {
+    const err = new Error('You cannot delete this post');
+    err.status = 403;
+    return next(err);
+  }
+
+  await prisma.post.delete({
+    where: { id: post.id },
   });
 
   return res.json({ post });
 });
+
+exports.updatePost = [
+  body('text').trim(),
+
+  asyncHandler(async (req, res, next) => {
+    const post = await prisma.post.findUnique({
+      where: { id: parseInt(req.params.postId, 10) },
+    });
+
+    if (post.authorId !== req.user.id) {
+      const err = new Error('You cannot edit this post');
+      err.status = 403;
+      return next(err);
+    }
+
+    const updatedPost = await prisma.post.update({
+      where: { id: post.id },
+      data: { text: req.body.text },
+    });
+
+    return res.json({ post: updatedPost });
+  }),
+];
 
 exports.likePost = asyncHandler(async (req, res, next) => {
   const post = await prisma.post.update({
