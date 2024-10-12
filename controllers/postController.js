@@ -93,6 +93,14 @@ exports.getPost = asyncHandler(async (req, res, next) => {
   return res.json({ post });
 });
 
+exports.deletePost = asyncHandler(async (req, res, next) => {
+  const post = await prisma.post.delete({
+    where: { id: parseInt(req.params.postId, 10) },
+  });
+
+  return res.json({ post });
+});
+
 exports.likePost = asyncHandler(async (req, res, next) => {
   const post = await prisma.post.update({
     where: { id: parseInt(req.params.postId, 10) },
