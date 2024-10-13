@@ -1,15 +1,16 @@
 const express = require('express');
 const passport = require('passport');
+const authController = require('../controllers/authController');
 const userController = require('../controllers/userController');
 const postController = require('../controllers/postController');
 const commentController = require('../controllers/commentController');
 
 const router = express.Router();
 
+router.post('/auth/local', authController.local);
 router.post('/users', userController.createUser);
-router.post('/users/login', userController.login);
-
 router.use(passport.authenticate('jwt', { session: false }));
+
 router.get('/users', userController.getAllUsers);
 router.get('/users/currentUser', userController.getCurrentUser);
 router.get('/users/:userId', userController.getUser);
