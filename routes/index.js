@@ -19,8 +19,8 @@ router.put('/users/unfollow', userController.unfollow);
 router.put('/users/profile', userController.updateProfile);
 
 router.post('/posts', postController.createPost);
+router.get('/users/:userId/posts', postController.getUserPosts);
 router.get('/posts/index', postController.getIndexPosts);
-router.get('/posts/user/:userId', postController.getUserPosts);
 router.get('/posts/:postId', postController.getPost);
 router.delete('/posts/:postId', postController.deletePost);
 
@@ -29,5 +29,9 @@ router.put('/posts/:postId/like', postController.likePost);
 router.put('/posts/:postId/unlike', postController.unlikePost);
 
 router.post('/posts/:postId/comments', commentController.createComment);
+router.delete('/comments/:commentId', commentController.deleteComment);
+router.put('/comments/:commentId', commentController.updateComment);
+router.put('/comments/:commentId/like', commentController.likeComment);
+router.put('/comments/:commentId/unlike', commentController.unlikeComment);
 
 module.exports = router;

@@ -86,7 +86,11 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     include: {
       author: true,
       likes: true,
-      comments: { include: { user: true }, orderBy: { timestamp: 'desc' } },
+      comments: {
+        include: { user: true, likes: true },
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+      },
     },
   });
 
@@ -104,15 +108,12 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
     return next(err);
   }
 
-  await prisma.post.delete({
-    where: { id: post.id },
-  });
-
+  await prisma.post.delete({ where: { id: post.id } });
   return res.json({ post });
 });
 
 exports.updatePost = [
-  body('text').trim(),
+  body('text', 'Post text must not be empty').trim().notEmpty(),
 
   asyncHandler(async (req, res, next) => {
     const post = await prisma.post.findUnique({

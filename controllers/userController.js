@@ -104,7 +104,8 @@ exports.login = [
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
   const users = await prisma.user.findMany({
     where: { NOT: { id: req.user.id } },
-    orderBy: { username: 'asc' },
+    orderBy: { followers: { _count: 'desc' } },
+    take: 20,
   });
 
   return res.json({ users });

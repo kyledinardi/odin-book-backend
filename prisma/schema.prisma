@@ -8,17 +8,18 @@ datasource db {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  username     String    @unique
-  displayName  String
-  passwordHash String
-  pfpUrl       String
-  bio          String?
-  followers    User[]    @relation("followers")
-  following    User[]    @relation("followers")
-  posts        Post[]    @relation("author")
-  likedPosts   Post[]    @relation("likes")
-  comments     Comment[]
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  displayName   String
+  passwordHash  String
+  pfpUrl        String
+  bio           String?
+  followers     User[]    @relation("followers")
+  following     User[]    @relation("followers")
+  posts         Post[]    @relation("postAuthor")
+  likedPosts    Post[]    @relation("likedPosts")
+  comments      Comment[] @relation("commentAuthor")
+  likedComments Comment[] @relation("likedComments")
 }
 
 model Post {
@@ -26,9 +27,9 @@ model Post {
   text      String
   timestamp DateTime  @default(now())
   imageUrl  String?
-  author    User      @relation("author", fields: [authorId], references: [id])
+  author    User      @relation("postAuthor", fields: [authorId], references: [id])
   authorId  Int
-  likes     User[]    @relation("likes")
+  likes     User[]    @relation("likedPosts")
   comments  Comment[]
 }
 
@@ -36,8 +37,9 @@ model Comment {
   id        Int      @id @default(autoincrement())
   text      String
   timestamp DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation("commentAuthor", fields: [userId], references: [id])
   userId    Int
   post      Post     @relation(fields: [postId], references: [id])
   postId    Int
+  likes     User[]   @relation("likedComments")
 }

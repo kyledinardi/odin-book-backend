@@ -15,8 +15,9 @@ async function main() {
   const userPromises = [];
   const followPromises = [];
   const postPromises = [];
-  const likePromises = [];
+  const postLikePromises = [];
   const commentPromises = [];
+  const commentLikePromises = [];
 
   passwordHashPromises.push(bcrypt.hash('1', 10));
 
@@ -98,7 +99,7 @@ async function main() {
   await Promise.all(postPromises);
 
   for (let i = 0; i < 100; i += 1) {
-    likePromises.push(
+    postLikePromises.push(
       prisma.post.update({
         where: { id: RNG(20) },
         data: { likes: { connect: { id: RNG(10) } } },
@@ -107,7 +108,7 @@ async function main() {
   }
 
   console.log('Liking posts...');
-  await Promise.all(likePromises);
+  await Promise.all(postLikePromises);
 
   for (let i = 0; i < 50; i += 1) {
     commentPromises.push(
@@ -123,6 +124,19 @@ async function main() {
 
   console.log('Creating comments...');
   await Promise.all(commentPromises);
+
+  for (let i = 0; i < 200; i += 1) {
+    commentLikePromises.push(
+      prisma.comment.update({
+        where: { id: RNG(50) },
+        data: { likes: { connect: { id: RNG(10) } } },
+      }),
+    );
+  }
+
+  console.log('Liking comments...');
+  await Promise.all(commentLikePromises);
+
   console.log('Seeding complete');
 }
 
