@@ -8,6 +8,8 @@ const commentController = require('../controllers/commentController');
 const router = express.Router();
 
 router.post('/auth/local', authController.local);
+router.get('/auth/github', authController.github);
+router.get('/auth/github/callback', authController.githubCallback);
 router.post('/users', userController.createUser);
 router.use(passport.authenticate('jwt', { session: false }));
 
