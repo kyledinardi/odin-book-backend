@@ -79,6 +79,17 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
   res.json({ posts });
 });
 
+exports.search = asyncHandler(async (req, res, next) => {
+  const posts = await prisma.post.findMany({
+    where: { text: { contains: req.query.query, mode: 'insensitive' } },
+    include: { author: true, likes: true, comments: true },
+    orderBy: { likes: { _count: 'desc' } },
+    take: 20,
+  });
+
+  res.json({ posts });
+});
+
 exports.getPost = asyncHandler(async (req, res, next) => {
   const post = await prisma.post.findUnique({
     where: { id: parseInt(req.params.postId, 10) },

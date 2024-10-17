@@ -32,17 +32,21 @@ async function main() {
   for (let i = 0; i < 10; i += 1) {
     let username;
     let displayName;
+    let bio;
 
     if (i === 0) {
       displayName = 'Guest';
       username = 'Guest';
     } else {
+      bio = faker.person.bio();
       displayName = faker.person.fullName();
+      const splitDisplayName = displayName.split(' ');
 
       username = faker.internet.userName({
-        firstName: displayName.split(' ')[0],
-        lastName: displayName.split(' ')[1],
+        firstName: splitDisplayName[0],
+        lastName: splitDisplayName[splitDisplayName.length - 1],
       });
+
     }
 
     const usernameHash = Crypto.createHash('sha256')
@@ -56,7 +60,7 @@ async function main() {
           username,
           passwordHash: passwordHashes[i],
           pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
-          bio: faker.person.bio(),
+          bio,
         },
       }),
     );

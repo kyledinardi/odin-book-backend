@@ -97,12 +97,28 @@ exports.getUser = asyncHandler(async (req, res, next) => {
     },
 
     include: {
-      followers: true,
-      following: true,
+      followers: { orderBy: { followers: { _count: 'desc' } } },
+      following: { orderBy: { followers: { _count: 'desc' } } },
     },
   });
 
   return res.json({ user });
+});
+
+exports.search = asyncHandler(async (req, res, next) => {
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { username: { contains: req.query.query, mode: 'insensitive' } },
+        { displayName: { contains: req.query.query, mode: 'insensitive' } },
+      ],
+    },
+
+    orderBy: { followers: { _count: 'desc' } },
+    take: 20,
+  });
+
+  res.json({ users });
 });
 
 exports.follow = asyncHandler(async (req, res, next) => {

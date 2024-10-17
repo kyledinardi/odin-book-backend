@@ -15,15 +15,17 @@ router.use(passport.authenticate('jwt', { session: false }));
 
 router.get('/users', userController.getAllUsers);
 router.get('/users/currentUser', userController.getCurrentUser);
+router.get('/users/search', userController.search);
 router.get('/users/:userId', userController.getUser);
 
+router.put('/users/profile', userController.updateProfile);
 router.put('/users/follow', userController.follow);
 router.put('/users/unfollow', userController.unfollow);
-router.put('/users/profile', userController.updateProfile);
 
 router.post('/posts', postController.createPost);
 router.get('/users/:userId/posts', postController.getUserPosts);
 router.get('/posts/index', postController.getIndexPosts);
+router.get('/posts/search', postController.search);
 router.get('/posts/:postId', postController.getPost);
 router.delete('/posts/:postId', postController.deletePost);
 
