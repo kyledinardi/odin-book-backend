@@ -1,6 +1,6 @@
 const multer = require('multer');
 const asyncHandler = require('express-async-handler');
-const { body, validationResult } = require('express-validator');
+const { body } = require('express-validator');
 const { unlink } = require('fs/promises');
 const cloudinary = require('cloudinary').v2;
 const { PrismaClient } = require('@prisma/client');
@@ -18,16 +18,11 @@ const prisma = new PrismaClient();
 
 exports.createPost = [
   upload.single('postImage'),
-  body('postText', 'Post text must not be empty').trim().notEmpty(),
+  body('postText').trim(),
 
   asyncHandler(async (req, res, next) => {
-    const errors = validationResult(req);
     const text = req.body.postText;
     let imageUrl = null;
-
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ text, errors: errors.array() });
-    }
 
     if (req.file) {
       if (req.file) {
@@ -35,6 +30,10 @@ exports.createPost = [
         imageUrl = result.secure_url;
         unlink(req.file.path);
       }
+    }
+
+    if (req.body.gifUrl !== '') {
+      imageUrl = req.body.gifUrl;
     }
 
     const post = await prisma.post.create({
