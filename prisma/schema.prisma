@@ -29,19 +29,34 @@ model Post {
   text      String
   timestamp DateTime  @default(now())
   imageUrl  String?
-  author    User      @relation("postAuthor", fields: [authorId], references: [id])
+  poll      Poll?
+  author    User      @relation("postAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   authorId  Int
   likes     User[]    @relation("likedPosts")
   comments  Comment[]
+}
+
+model Poll {
+  id           Int      @id @default(autoincrement())
+  choices      String[]
+  voters       Int[]
+  choice1Votes Int[]
+  choice2Votes Int[]
+  choice3Votes Int[]
+  choice4Votes Int[]
+  choice5Votes Int[]
+  choice6Votes Int[]
+  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId       Int      @unique
 }
 
 model Comment {
   id        Int      @id @default(autoincrement())
   text      String
   timestamp DateTime @default(now())
-  user      User     @relation("commentAuthor", fields: [userId], references: [id])
+  user      User     @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    Int
   likes     User[]   @relation("likedComments")
 }

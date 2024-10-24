@@ -3,6 +3,7 @@ const passport = require('passport');
 const authController = require('../controllers/authController');
 const userController = require('../controllers/userController');
 const postController = require('../controllers/postController');
+const pollController = require('../controllers/pollController');
 const commentController = require('../controllers/commentController');
 
 const router = express.Router();
@@ -32,6 +33,9 @@ router.delete('/posts/:postId', postController.deletePost);
 router.put('/posts/:postId/', postController.updatePost);
 router.put('/posts/:postId/like', postController.likePost);
 router.put('/posts/:postId/unlike', postController.unlikePost);
+
+router.post('/polls', pollController.createPoll);
+router.put('/polls/:pollId', pollController.voteInPoll);
 
 router.post('/posts/:postId/comments', commentController.createComment);
 router.delete('/comments/:commentId', commentController.deleteComment);

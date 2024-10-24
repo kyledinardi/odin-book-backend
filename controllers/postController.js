@@ -21,7 +21,6 @@ exports.createPost = [
   body('postText').trim(),
 
   asyncHandler(async (req, res, next) => {
-    const text = req.body.postText;
     let imageUrl = null;
 
     if (req.file) {
@@ -37,7 +36,12 @@ exports.createPost = [
     }
 
     const post = await prisma.post.create({
-      data: { text, imageUrl, author: { connect: { id: req.user.id } } },
+      data: {
+        text: req.body.postText,
+        imageUrl,
+        author: { connect: { id: req.user.id } },
+      },
+
       include: { author: true, likes: true, comments: true },
     });
 
@@ -58,7 +62,7 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
       OR: [{ authorId: req.user.id }, { authorId: { in: followedIds } }],
     },
 
-    include: { author: true, likes: true, comments: true },
+    include: { author: true, likes: true, comments: true, poll: true },
     orderBy: { timestamp: 'desc' },
     take: 20,
   });
@@ -70,7 +74,7 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
     where: { authorId: parseInt(req.params.userId, 10) },
 
-    include: { author: true, likes: true, comments: true },
+    include: { author: true, likes: true, comments: true, poll: true },
     orderBy: { timestamp: 'desc' },
     take: 20,
   });
@@ -81,7 +85,7 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
 exports.search = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
     where: { text: { contains: req.query.query, mode: 'insensitive' } },
-    include: { author: true, likes: true, comments: true },
+    include: { author: true, likes: true, comments: true, poll: true },
     orderBy: { likes: { _count: 'desc' } },
     take: 20,
   });
@@ -96,6 +100,7 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     include: {
       author: true,
       likes: true,
+      poll: true,
       comments: {
         include: { user: true, likes: true },
         orderBy: { timestamp: 'desc' },
