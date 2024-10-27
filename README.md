@@ -1,1 +1,1 @@
-# express-template
+Frontend at https://github.com/kyledinardi/odin-book-frontend

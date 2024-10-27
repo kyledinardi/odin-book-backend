@@ -42,7 +42,7 @@ async function main() {
       displayName = faker.person.fullName();
       const splitDisplayName = displayName.split(' ');
 
-      username = faker.internet.userName({
+      username = faker.internet.username({
         firstName: splitDisplayName[0],
         lastName: splitDisplayName[splitDisplayName.length - 1],
       });
