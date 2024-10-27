@@ -1,19 +1,14 @@
 const asyncHandler = require('express-async-handler');
-const { body, validationResult } = require('express-validator');
+const { body } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
 exports.createComment = [
-  body('text', 'Comment text must not be empty').trim().notEmpty(),
+  body('text').trim(),
 
   asyncHandler(async (req, res, next) => {
-    const errors = validationResult(req);
     const { text } = req.body;
-
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const comment = await prisma.comment.create({
       data: {
@@ -34,6 +29,12 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
     where: { id: parseInt(req.params.commentId, 10) },
   });
 
+  if (!comment) {
+    const err = new Error('Comment not found');
+    err.status = 404;
+    return next(err);
+  }
+
   if (comment.userId !== req.user.id) {
     const err = new Error('You cannot edit this comment');
     err.status = 403;
@@ -45,7 +46,7 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
 });
 
 exports.updateComment = [
-  body('text', 'Comment text must not be empty').trim().notEmpty(),
+  body('text').trim(),
 
   asyncHandler(async (req, res, next) => {
     const comment = await prisma.comment.findUnique({

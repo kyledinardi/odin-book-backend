@@ -46,7 +46,7 @@ exports.createUser = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ expectedErrors: errors.array() });
     }
 
     const usernameHash = Crypto.createHash('sha256')
@@ -87,20 +87,30 @@ exports.getCurrentUser = asyncHandler(async (req, res, next) => {
     include: { following: true },
   });
 
+  if (!user) {
+    const err = new Error('You are not logged in');
+    err.status = 401;
+    return next(err);
+  }
+
   return res.json({ user });
 });
 
 exports.getUser = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
-    where: {
-      id: parseInt(req.params.userId, 10),
-    },
+    where: { id: parseInt(req.params.userId, 10) },
 
     include: {
       followers: { orderBy: { followers: { _count: 'desc' } } },
       following: { orderBy: { followers: { _count: 'desc' } } },
     },
   });
+
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    return next(err);
+  }
 
   return res.json({ user });
 });

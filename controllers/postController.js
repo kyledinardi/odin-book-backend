@@ -109,6 +109,12 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     },
   });
 
+  if (!post) {
+    const err = new Error('Post not found');
+    err.status = 404;
+    return next(err);
+  }
+
   return res.json({ post });
 });
 
@@ -116,6 +122,12 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
   const post = await prisma.post.findUnique({
     where: { id: parseInt(req.params.postId, 10) },
   });
+
+  if (!post) {
+    const err = new Error('Post not found');
+    err.status = 404;
+    return next(err);
+  }
 
   if (post.authorId !== req.user.id) {
     const err = new Error('You cannot delete this post');
@@ -128,12 +140,18 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
 });
 
 exports.updatePost = [
-  body('text', 'Post text must not be empty').trim().notEmpty(),
+  body('text').trim(),
 
   asyncHandler(async (req, res, next) => {
     const post = await prisma.post.findUnique({
       where: { id: parseInt(req.params.postId, 10) },
     });
+
+    if (!post) {
+      const err = new Error('Post not found');
+      err.status = 404;
+      return next(err);
+    }
 
     if (post.authorId !== req.user.id) {
       const err = new Error('You cannot edit this post');

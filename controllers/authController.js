@@ -14,7 +14,9 @@ exports.local = [
       }
 
       if (!user) {
-        return res.status(400).json({ message: info.message });
+        return res
+          .status(400)
+          .json({ expectedError: { message: info.message } });
       }
 
       req.login(user, { session: false }, async (loginErr) => {
