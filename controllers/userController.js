@@ -40,7 +40,7 @@ exports.createUser = [
 
   body('passwordConfirmation', 'Passwords did not match')
     .trim()
-    .custom((value, { req }) => value === req.body.password),
+    .custom((password, { req }) => password === req.body.password),
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
@@ -131,26 +131,6 @@ exports.search = asyncHandler(async (req, res, next) => {
   res.json({ users });
 });
 
-exports.follow = asyncHandler(async (req, res, next) => {
-  const user = await prisma.user.update({
-    where: { id: req.user.id },
-    data: { following: { connect: { id: req.body.userId } } },
-    include: { following: true },
-  });
-
-  return res.json({ user });
-});
-
-exports.unfollow = asyncHandler(async (req, res, next) => {
-  const user = await prisma.user.update({
-    where: { id: req.user.id },
-    data: { following: { disconnect: { id: req.body.userId } } },
-    include: { following: true },
-  });
-
-  return res.json({ user });
-});
-
 exports.updateProfile = [
   upload.single('pfp'),
   body('bio').trim(),
@@ -172,3 +152,61 @@ exports.updateProfile = [
     return res.json({ user });
   }),
 ];
+
+exports.updatePassword = [
+  body('currentPassword', 'Current password must not be empty')
+    .trim()
+    .notEmpty()
+
+    .custom(async (password, { req }) => {
+      const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+      const match = await bcrypt.compare(password, user.passwordHash);
+
+      if (!match) {
+        throw new Error('Incorrect current password');
+      }
+    }),
+
+  body('newPassword', 'New Password must not be empty').trim().notEmpty(),
+
+  body('newPasswordConfirmation', 'Passwords did not match')
+    .trim()
+    .custom((password, { req }) => password === req.body.newPassword),
+
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ expectedErrors: errors.array() });
+    }
+
+    const passwordHash = await bcrypt.hash(req.body.newPassword, 10);
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { passwordHash },
+    });
+
+    return res.json({ user });
+  }),
+];
+
+exports.follow = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { following: { connect: { id: req.body.userId } } },
+    include: { following: true },
+  });
+
+  return res.json({ user });
+});
+
+exports.unfollow = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { following: { disconnect: { id: req.body.userId } } },
+    include: { following: true },
+  });
+
+  return res.json({ user });
+});

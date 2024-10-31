@@ -73,7 +73,6 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
     where: { authorId: parseInt(req.params.userId, 10) },
-
     include: { author: true, likes: true, comments: true, poll: true },
     orderBy: { timestamp: 'desc' },
     take: 20,
@@ -101,6 +100,7 @@ exports.getPost = asyncHandler(async (req, res, next) => {
       author: true,
       likes: true,
       poll: true,
+
       comments: {
         include: { user: true, likes: true },
         orderBy: { timestamp: 'desc' },

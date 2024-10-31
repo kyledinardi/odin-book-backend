@@ -20,6 +20,7 @@ router.get('/users/search', userController.search);
 router.get('/users/:userId', userController.getUser);
 
 router.put('/users/profile', userController.updateProfile);
+router.put('/users/password', userController.updatePassword);
 router.put('/users/follow', userController.follow);
 router.put('/users/unfollow', userController.unfollow);
 
