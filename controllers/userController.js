@@ -132,21 +132,36 @@ exports.search = asyncHandler(async (req, res, next) => {
 });
 
 exports.updateProfile = [
-  upload.single('pfp'),
+  upload.fields([{ name: 'pfp' }, { name: 'headerImage' }]),
+
   body('bio').trim(),
 
   asyncHandler(async (req, res, next) => {
-    const userData = { bio: req.body.bio, displayName: req.body.displayName };
+    if (req.user.username === 'Guest') {
+      const err = new Error('Cannot edit guest account');
+      err.status = 403;
+      return next(err);
+    }
 
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
-      await unlink(req.file.path);
-      userData.pfpUrl = result.secure_url;
+    const data = { bio: req.body.bio, displayName: req.body.displayName };
+
+    if (req.files.pfp) {
+      const pfp = req.files.pfp[0];
+      const result = await cloudinary.uploader.upload(pfp.path);
+      await unlink(pfp.path);
+      data.pfpUrl = result.secure_url;
+    }
+
+    if (req.files.headerImage) {
+      const headerImage = req.files.headerImage[0];
+      const result = await cloudinary.uploader.upload(headerImage.path);
+      await unlink(headerImage.path);
+      data.headerUrl = result.secure_url;
     }
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: userData,
+      data,
     });
 
     return res.json({ user });
@@ -174,6 +189,12 @@ exports.updatePassword = [
     .custom((password, { req }) => password === req.body.newPassword),
 
   asyncHandler(async (req, res, next) => {
+    if (req.user.username === 'Guest') {
+      const err = new Error('Cannot change guest password');
+      err.status = 403;
+      return next(err);
+    }
+
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
