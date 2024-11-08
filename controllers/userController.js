@@ -71,11 +71,11 @@ exports.createUser = [
   }),
 ];
 
-exports.getAllUsers = asyncHandler(async (req, res, next) => {
+exports.getListedUsers = asyncHandler(async (req, res, next) => {
   const users = await prisma.user.findMany({
     where: { NOT: { id: req.user.id } },
     orderBy: { followers: { _count: 'desc' } },
-    take: 20,
+    take: 5,
   });
 
   return res.json({ users });

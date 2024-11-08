@@ -140,7 +140,6 @@ async function main() {
 
   console.log('Liking comments...');
   await Promise.all(commentLikePromises);
-
   console.log('Seeding complete');
 }
 

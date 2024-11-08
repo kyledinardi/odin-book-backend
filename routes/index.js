@@ -14,7 +14,7 @@ router.get('/auth/github/callback', authController.githubCallback);
 router.post('/users', userController.createUser);
 router.use(passport.authenticate('jwt', { session: false }));
 
-router.get('/users', userController.getAllUsers);
+router.get('/users', userController.getListedUsers);
 router.get('/users/currentUser', userController.getCurrentUser);
 router.get('/users/search', userController.search);
 router.get('/users/:userId', userController.getUser);
