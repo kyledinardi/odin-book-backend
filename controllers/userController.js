@@ -72,11 +72,53 @@ exports.createUser = [
 ];
 
 exports.getListedUsers = asyncHandler(async (req, res, next) => {
-  const users = await prisma.user.findMany({
-    where: { NOT: { id: req.user.id } },
-    orderBy: { followers: { _count: 'desc' } },
-    take: 5,
+  const currentUser = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    include: { following: { include: { following: true } } },
   });
+
+  const filterList = currentUser.following.map((user) => user.id);
+  filterList.push(currentUser.id);
+
+  const followed = currentUser.following
+    .map((user) => user.following)
+    .flat()
+    .filter((user) => !filterList.includes(user.id));
+
+  let users;
+
+  if (followed.length > 0) {
+    const suggestions = [];
+
+    followed.forEach((user) => {
+      const i = suggestions.findIndex(
+        (suggestion) => suggestion.userId === user.id,
+      );
+
+      if (i > -1) {
+        suggestions[i].count += 1;
+      } else {
+        suggestions.push({ userId: user.id, count: 1 });
+      }
+    });
+
+    suggestions.sort((a, b) => (a.count > b.count ? -1 : 1));
+    const minCount = suggestions[4] ? suggestions[4].count : 1;
+
+    const suggestionIds = suggestions
+      .filter((suggestion) => suggestion.count >= minCount)
+      .map((suggestion) => suggestion.userId);
+
+    users = suggestionIds.map((suggestionId) =>
+      followed.find((user) => user.id === suggestionId),
+    );
+  } else {
+    users = await prisma.user.findMany({
+      where: { NOT: { id: { in: filterList } } },
+      orderBy: { followers: { _count: 'desc' } },
+      take: 5,
+    });
+  }
 
   return res.json({ users });
 });
