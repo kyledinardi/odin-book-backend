@@ -12,6 +12,7 @@ model User {
   username          String    @unique
   displayName       String
   pfpUrl            String
+  joinDate          DateTime  @default(now())
   headerUrl         String?
   bio               String?
   passwordHash      String?
