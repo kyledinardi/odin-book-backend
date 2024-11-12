@@ -1,5 +1,5 @@
-const multer = require('multer');
 const asyncHandler = require('express-async-handler');
+const multer = require('multer');
 const { body } = require('express-validator');
 const { unlink } = require('fs/promises');
 const cloudinary = require('cloudinary').v2;
@@ -17,8 +17,8 @@ const upload = multer({ storage });
 const prisma = new PrismaClient();
 
 exports.createPost = [
-  upload.single('postImage'),
-  body('postText').trim(),
+  upload.single('image'),
+  body('text').trim(),
 
   asyncHandler(async (req, res, next) => {
     let imageUrl = null;
@@ -37,7 +37,7 @@ exports.createPost = [
 
     const post = await prisma.post.create({
       data: {
-        text: req.body.postText,
+        text: req.body.text,
         imageUrl,
         author: { connect: { id: req.user.id } },
       },

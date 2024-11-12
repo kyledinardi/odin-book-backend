@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node --watch ./app.js",
-    "migrate": "prisma migrate dev"
+    "start": "node --watch ./app.js"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
