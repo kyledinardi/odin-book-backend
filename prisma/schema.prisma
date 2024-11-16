@@ -32,8 +32,8 @@ model Post {
   timestamp DateTime  @default(now())
   imageUrl  String?
   poll      Poll?
-  author    User      @relation("postAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  authorId  Int
+  user    User      @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int
   likes     User[]    @relation("likedPosts")
   comments  Comment[]
 }
@@ -53,13 +53,16 @@ model Poll {
 }
 
 model Comment {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   text      String
-  timestamp DateTime @default(now())
+  timestamp DateTime  @default(now())
   imageUrl  String?
-  user      User     @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    Int
-  likes     User[]   @relation("likedComments")
+  likes     User[]    @relation("likedComments")
+  parent    Comment?  @relation("replies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  Int?
+  replies   Comment[] @relation("replies")
 }

@@ -16,11 +16,21 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 const prisma = new PrismaClient();
 
-exports.createComment = [
+exports.createRootComment = [
   upload.single('image'),
   body('text').trim(),
 
   asyncHandler(async (req, res, next) => {
+    const post = await prisma.comment.findUnique({
+      where: { id: parseInt(req.params.postId, 10) },
+    });
+
+    if (!post) {
+      const err = new Error('Post not found');
+      err.status = 404;
+      return next(err);
+    }
+
     let imageUrl = null;
 
     if (req.file) {
@@ -40,15 +50,107 @@ exports.createComment = [
         text: req.body.text,
         imageUrl,
         user: { connect: { id: req.user.id } },
-        post: { connect: { id: parseInt(req.params.postId, 10) } },
+        post: { connect: { id: post.id } },
       },
 
-      include: { user: true, likes: true },
+      include: { user: true, likes: true, replies: true },
     });
 
     return res.json({ comment });
   }),
 ];
+
+exports.createReply = [
+  upload.single('image'),
+  body('text').trim(),
+
+  asyncHandler(async (req, res, next) => {
+    const parent = await prisma.comment.findUnique({
+      where: { id: parseInt(req.params.commentId, 10) },
+    });
+
+    if (!parent) {
+      const err = new Error('Comment not found');
+      err.status = 404;
+      return next(err);
+    }
+
+    let imageUrl = null;
+
+    if (req.file) {
+      if (req.file) {
+        const result = await cloudinary.uploader.upload(req.file.path);
+        imageUrl = result.secure_url;
+        unlink(req.file.path);
+      }
+    }
+
+    if (req.body.gifUrl !== '') {
+      imageUrl = req.body.gifUrl;
+    }
+
+    const comment = await prisma.comment.create({
+      data: {
+        text: req.body.text,
+        imageUrl,
+        user: { connect: { id: req.user.id } },
+        post: { connect: { id: parent.postId } },
+        parent: { connect: { id: parent.id } },
+      },
+
+      include: { user: true, likes: true, replies: true },
+    });
+
+    return res.json({ comment });
+  }),
+];
+
+exports.getComment = asyncHandler(async (req, res, next) => {
+  const comment = await prisma.comment.findUnique({
+    where: { id: parseInt(req.params.commentId, 10) },
+
+    include: {
+      user: true,
+      likes: true,
+      
+      post: {
+        include: {
+          user: true,
+          likes: true,
+          comments: { where: { parentId: null } },
+        },
+      },
+
+      replies: {
+        include: { user: true, likes: true, replies: true },
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+      },
+    },
+  });
+
+  if (!comment) {
+    const err = new Error('Comment not found');
+    err.status = 404;
+    return next(err);
+  }
+
+  const commentChain = [];
+  let currentComment = comment;
+
+  while (currentComment.parentId) {
+    // eslint-disable-next-line no-await-in-loop
+    currentComment = await prisma.comment.findUnique({
+      where: { id: currentComment.parentId },
+      include: { user: true, likes: true, replies: true },
+    });
+
+    commentChain.unshift(currentComment);
+  }
+
+  comment.commentChain = commentChain;
+  return res.json({ comment });
+});
 
 exports.deleteComment = asyncHandler(async (req, res, next) => {
   const comment = await prisma.comment.findUnique({

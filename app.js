@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 require('dotenv').config();
 require('./passport');
 const express = require('express');
@@ -30,7 +31,7 @@ app.use((err, req, res, next) => {
   };
 
   console.error(response);
-  res.json(response);
+  return res.json(response);
 });
 
 app.listen(PORT, () => console.log(`Odin Book - listening on port ${PORT}!`));

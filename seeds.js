@@ -25,7 +25,6 @@ async function main() {
     passwordHashPromises.push(bcrypt.hash(faker.internet.password(), 10));
   }
 
-  passwordHashPromises.push(bcrypt.hash('1', 10));
   console.log('Hashing passwords...');
   const passwordHashes = await Promise.all(passwordHashPromises);
 
@@ -46,7 +45,6 @@ async function main() {
         firstName: splitDisplayName[0],
         lastName: splitDisplayName[splitDisplayName.length - 1],
       });
-
     }
 
     const usernameHash = Crypto.createHash('sha256')
@@ -93,7 +91,7 @@ async function main() {
       prisma.post.create({
         data: {
           text: faker.lorem.text(),
-          author: { connect: { id: RNG(10) } },
+          user: { connect: { id: RNG(10) } },
         },
       }),
     );

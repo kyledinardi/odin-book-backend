@@ -1,11 +1,11 @@
 const multer = require('multer');
 const asyncHandler = require('express-async-handler');
-const { body, validationResult } = require('express-validator');
 const { unlink } = require('fs/promises');
+const { body, validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
 const Crypto = require('crypto');
 const cloudinary = require('cloudinary').v2;
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
 
 const storage = multer.diskStorage({
   destination: 'uploads/',
@@ -138,6 +138,22 @@ exports.getCurrentUser = asyncHandler(async (req, res, next) => {
   return res.json({ user });
 });
 
+exports.search = asyncHandler(async (req, res, next) => {
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { username: { contains: req.query.query, mode: 'insensitive' } },
+        { displayName: { contains: req.query.query, mode: 'insensitive' } },
+      ],
+    },
+
+    orderBy: { followers: { _count: 'desc' } },
+    take: 20,
+  });
+
+  return res.json({ users });
+});
+
 exports.getUser = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: parseInt(req.params.userId, 10) },
@@ -155,22 +171,6 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   }
 
   return res.json({ user });
-});
-
-exports.search = asyncHandler(async (req, res, next) => {
-  const users = await prisma.user.findMany({
-    where: {
-      OR: [
-        { username: { contains: req.query.query, mode: 'insensitive' } },
-        { displayName: { contains: req.query.query, mode: 'insensitive' } },
-      ],
-    },
-
-    orderBy: { followers: { _count: 'desc' } },
-    take: 20,
-  });
-
-  res.json({ users });
 });
 
 exports.updateProfile = [

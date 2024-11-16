@@ -1,6 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
 const asyncHandler = require('express-async-handler');
 const { body } = require('express-validator');
+const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
@@ -18,10 +18,10 @@ exports.createPoll = [
       data: {
         text: req.body.question,
         poll: { create: { choices } },
-        author: { connect: { id: req.user.id } },
+        user: { connect: { id: req.user.id } },
       },
 
-      include: { author: true, likes: true, comments: true, poll: true },
+      include: { user: true, likes: true, comments: true, poll: true },
     });
 
     return res.json({ post });

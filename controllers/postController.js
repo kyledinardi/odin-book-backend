@@ -39,10 +39,17 @@ exports.createPost = [
       data: {
         text: req.body.text,
         imageUrl,
-        author: { connect: { id: req.user.id } },
+        user: { connect: { id: req.user.id } },
       },
 
-      include: { author: true, likes: true, comments: true },
+      include: {
+        user: true,
+        likes: true,
+
+        comments: {
+          where: { parentId: null },
+        },
+      },
     });
 
     return res.json({ post });
@@ -59,10 +66,19 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
 
   const posts = await prisma.post.findMany({
     where: {
-      OR: [{ authorId: req.user.id }, { authorId: { in: followedIds } }],
+      OR: [{ userId: req.user.id }, { userId: { in: followedIds } }],
     },
 
-    include: { author: true, likes: true, comments: true, poll: true },
+    include: {
+      user: true,
+      likes: true,
+      poll: true,
+
+      comments: {
+        where: { parentId: null },
+      },
+    },
+
     orderBy: { timestamp: 'desc' },
     take: 20,
   });
@@ -72,8 +88,17 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
 
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
-    where: { authorId: parseInt(req.params.userId, 10) },
-    include: { author: true, likes: true, comments: true, poll: true },
+    where: { userId: parseInt(req.params.userId, 10) },
+    include: {
+      user: true,
+      likes: true,
+      poll: true,
+
+      comments: {
+        where: { parentId: null },
+      },
+    },
+
     orderBy: { timestamp: 'desc' },
     take: 20,
   });
@@ -84,7 +109,15 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
 exports.search = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
     where: { text: { contains: req.query.query, mode: 'insensitive' } },
-    include: { author: true, likes: true, comments: true, poll: true },
+    include: {
+      user: true,
+      likes: true,
+      poll: true,
+
+      comments: {
+        where: { parentId: null },
+      },
+    },
     orderBy: { likes: { _count: 'desc' } },
     take: 20,
   });
@@ -97,12 +130,13 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     where: { id: parseInt(req.params.postId, 10) },
 
     include: {
-      author: true,
+      user: true,
       likes: true,
       poll: true,
 
       comments: {
-        include: { user: true, likes: true },
+        where: { parentId: null },
+        include: { user: true, likes: true, replies: true },
         orderBy: { timestamp: 'desc' },
         take: 20,
       },
@@ -129,7 +163,7 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
     return next(err);
   }
 
-  if (post.authorId !== req.user.id) {
+  if (post.userId !== req.user.id) {
     const err = new Error('You cannot delete this post');
     err.status = 403;
     return next(err);
@@ -153,7 +187,7 @@ exports.updatePost = [
       return next(err);
     }
 
-    if (post.authorId !== req.user.id) {
+    if (post.userId !== req.user.id) {
       const err = new Error('You cannot edit this post');
       err.status = 403;
       return next(err);
