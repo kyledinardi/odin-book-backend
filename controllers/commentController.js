@@ -112,7 +112,7 @@ exports.getComment = asyncHandler(async (req, res, next) => {
     include: {
       user: true,
       likes: true,
-      
+
       post: {
         include: {
           user: true,
@@ -181,6 +181,12 @@ exports.updateComment = [
       where: { id: parseInt(req.params.commentId, 10) },
     });
 
+    if (!comment) {
+      const err = new Error('Comment not found');
+      err.status = 404;
+      return next(err);
+    }
+
     if (comment.userId !== req.user.id) {
       const err = new Error('You cannot edit this comment');
       err.status = 403;
@@ -203,6 +209,12 @@ exports.likeComment = asyncHandler(async (req, res, next) => {
     include: { likes: true },
   });
 
+  if (!comment) {
+    const err = new Error('Comment not found');
+    err.status = 404;
+    return next(err);
+  }
+
   return res.json({ comment });
 });
 
@@ -212,6 +224,12 @@ exports.unlikeComment = asyncHandler(async (req, res, next) => {
     data: { likes: { disconnect: { id: req.user.id } } },
     include: { likes: true },
   });
+
+  if (!comment) {
+    const err = new Error('Comment not found');
+    err.status = 404;
+    return next(err);
+  }
 
   return res.json({ comment });
 });

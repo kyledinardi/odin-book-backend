@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 require('dotenv').config();
-require('./passport');
+require('./helpers/passport');
 const express = require('express');
 const cors = require('cors');
 const indexRouter = require('./routes/index');
