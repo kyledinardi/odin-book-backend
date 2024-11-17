@@ -32,8 +32,8 @@ model Post {
   timestamp DateTime  @default(now())
   imageUrl  String?
   poll      Poll?
-  user    User      @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  userId  Int
+  user      User      @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
   likes     User[]    @relation("likedPosts")
   comments  Comment[]
 }

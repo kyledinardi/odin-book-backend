@@ -209,12 +209,6 @@ exports.likeComment = asyncHandler(async (req, res, next) => {
     include: { likes: true },
   });
 
-  if (!comment) {
-    const err = new Error('Comment not found');
-    err.status = 404;
-    return next(err);
-  }
-
   return res.json({ comment });
 });
 
@@ -224,12 +218,6 @@ exports.unlikeComment = asyncHandler(async (req, res, next) => {
     data: { likes: { disconnect: { id: req.user.id } } },
     include: { likes: true },
   });
-
-  if (!comment) {
-    const err = new Error('Comment not found');
-    err.status = 404;
-    return next(err);
-  }
 
   return res.json({ comment });
 });

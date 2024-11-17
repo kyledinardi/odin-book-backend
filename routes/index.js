@@ -26,6 +26,7 @@ router.put('/users/unfollow', userController.unfollow);
 
 router.post('/posts', postController.createPost);
 router.get('/users/:userId/posts', postController.getUserPosts);
+router.get('/users/:userId/likes', postController.getLikedPosts);
 router.get('/posts/index', postController.getIndexPosts);
 router.get('/posts/search', postController.search);
 router.get('/posts/:postId', postController.getPost);

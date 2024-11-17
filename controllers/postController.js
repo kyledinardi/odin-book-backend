@@ -87,6 +87,16 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
 });
 
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(req.params.userId, 10) },
+  });
+
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    return next(err);
+  }
+
   const posts = await prisma.post.findMany({
     where: { userId: parseInt(req.params.userId, 10) },
     include: {
@@ -103,12 +113,41 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
     take: 20,
   });
 
-  res.json({ posts });
+  return res.json({ posts });
+});
+
+exports.getLikedPosts = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(req.params.userId, 10) },
+
+    include: {
+      likedPosts: {
+        include: {
+          user: true,
+          likes: true,
+          poll: true,
+          comments: { where: { parentId: null } },
+        },
+
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+      },
+    },
+  });
+
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    return next(err);
+  }
+
+  return res.json({ posts: user.likedPosts });
 });
 
 exports.search = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
     where: { text: { contains: req.query.query, mode: 'insensitive' } },
+
     include: {
       user: true,
       likes: true,
@@ -118,11 +157,12 @@ exports.search = asyncHandler(async (req, res, next) => {
         where: { parentId: null },
       },
     },
+
     orderBy: { likes: { _count: 'desc' } },
     take: 20,
   });
 
-  res.json({ posts });
+  return res.json({ posts });
 });
 
 exports.getPost = asyncHandler(async (req, res, next) => {
@@ -209,6 +249,12 @@ exports.likePost = asyncHandler(async (req, res, next) => {
     include: { likes: true },
   });
 
+  if (!post) {
+    const err = new Error('Post not found');
+    err.status = 404;
+    return next(err);
+  }
+
   return res.json({ post });
 });
 
@@ -218,6 +264,12 @@ exports.unlikePost = asyncHandler(async (req, res, next) => {
     data: { likes: { disconnect: { id: req.user.id } } },
     include: { likes: true },
   });
+
+  if (!post) {
+    const err = new Error('Post not found');
+    err.status = 404;
+    return next(err);
+  }
 
   return res.json({ post });
 });
