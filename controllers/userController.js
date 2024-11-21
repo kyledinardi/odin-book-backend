@@ -138,7 +138,7 @@ exports.getCurrentUser = asyncHandler(async (req, res, next) => {
   return res.json({ user });
 });
 
-exports.search = asyncHandler(async (req, res, next) => {
+exports.searchUsers = asyncHandler(async (req, res, next) => {
   const users = await prisma.user.findMany({
     where: {
       OR: [

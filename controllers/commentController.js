@@ -98,7 +98,7 @@ exports.createReply = [
         parent: { connect: { id: parent.id } },
       },
 
-      include: { user: true, likes: true, replies: true },
+      include: { user: true, likes: true, replies: true, reposts: true },
     });
 
     return res.json({ comment });
@@ -112,17 +112,20 @@ exports.getComment = asyncHandler(async (req, res, next) => {
     include: {
       user: true,
       likes: true,
+      reposts: true,
 
       post: {
         include: {
           user: true,
+          reposts: true,
           likes: true,
+          poll: true,
           comments: { where: { parentId: null } },
         },
       },
 
       replies: {
-        include: { user: true, likes: true, replies: true },
+        include: { user: true, likes: true, replies: true, reposts: true },
         orderBy: { timestamp: 'desc' },
         take: 20,
       },
@@ -142,7 +145,7 @@ exports.getComment = asyncHandler(async (req, res, next) => {
     // eslint-disable-next-line no-await-in-loop
     currentComment = await prisma.comment.findUnique({
       where: { id: currentComment.parentId },
-      include: { user: true, likes: true, replies: true },
+      include: { user: true, likes: true, replies: true, reposts: true },
     });
 
     commentChain.unshift(currentComment);

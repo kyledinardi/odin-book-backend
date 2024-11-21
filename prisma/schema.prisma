@@ -24,6 +24,7 @@ model User {
   likedPosts        Post[]    @relation("likedPosts")
   comments          Comment[] @relation("commentAuthor")
   likedComments     Comment[] @relation("likedComments")
+  reposts           Repost[]
 }
 
 model Post {
@@ -36,10 +37,13 @@ model Post {
   userId    Int
   likes     User[]    @relation("likedPosts")
   comments  Comment[]
+  reposts   Repost[]
 }
 
 model Poll {
   id           Int      @id @default(autoincrement())
+  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId       Int      @unique
   choices      String[]
   voters       Int[]
   choice1Votes Int[]
@@ -48,8 +52,6 @@ model Poll {
   choice4Votes Int[]
   choice5Votes Int[]
   choice6Votes Int[]
-  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId       Int      @unique
 }
 
 model Comment {
@@ -61,8 +63,20 @@ model Comment {
   userId    Int
   post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    Int
-  likes     User[]    @relation("likedComments")
   parent    Comment?  @relation("replies", fields: [parentId], references: [id], onDelete: Cascade)
   parentId  Int?
+  likes     User[]    @relation("likedComments")
   replies   Comment[] @relation("replies")
+  reposts   Repost[]
+}
+
+model Repost {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    Int?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId Int?
 }

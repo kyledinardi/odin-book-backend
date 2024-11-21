@@ -16,6 +16,38 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 const prisma = new PrismaClient();
 
+const postInclusions = {
+  user: true,
+  likes: true,
+  poll: true,
+  reposts: true,
+  comments: { where: { parentId: null } },
+};
+
+const postAndRepostInclusions = {
+  posts: { include: postInclusions, take: 20 },
+
+  reposts: {
+    include: {
+      user: true,
+      post: { include: postInclusions },
+
+      comment: {
+        include: {
+          user: true,
+          likes: true,
+          replies: true,
+          reposts: true,
+          post: { include: { user: true } },
+          parent: { include: { user: true } },
+        },
+      },
+    },
+
+    take: 20,
+  },
+};
+
 exports.createPost = [
   upload.single('image'),
   body('text').trim(),
@@ -42,14 +74,7 @@ exports.createPost = [
         user: { connect: { id: req.user.id } },
       },
 
-      include: {
-        user: true,
-        likes: true,
-
-        comments: {
-          where: { parentId: null },
-        },
-      },
+      include: postInclusions,
     });
 
     return res.json({ post });
@@ -59,36 +84,29 @@ exports.createPost = [
 exports.getIndexPosts = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
-    include: { following: true },
-  });
-
-  const followedIds = user.following.map((followedUser) => followedUser.id);
-
-  const posts = await prisma.post.findMany({
-    where: {
-      OR: [{ userId: req.user.id }, { userId: { in: followedIds } }],
-    },
 
     include: {
-      user: true,
-      likes: true,
-      poll: true,
-
-      comments: {
-        where: { parentId: null },
-      },
+      ...postAndRepostInclusions,
+      following: { include: postAndRepostInclusions },
     },
-
-    orderBy: { timestamp: 'desc' },
-    take: 20,
   });
 
-  return res.json({ posts });
+  const { posts } = user;
+  posts.push(...user.reposts);
+
+  user.following.forEach((followedUser) =>
+    posts.push(...followedUser.posts, ...followedUser.reposts),
+  );
+
+  posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const latest20 = posts.slice(0, 20);
+  return res.json({ posts: latest20 });
 });
 
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: parseInt(req.params.userId, 10) },
+    include: postAndRepostInclusions,
   });
 
   if (!user) {
@@ -97,23 +115,11 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
     return next(err);
   }
 
-  const posts = await prisma.post.findMany({
-    where: { userId: parseInt(req.params.userId, 10) },
-    include: {
-      user: true,
-      likes: true,
-      poll: true,
-
-      comments: {
-        where: { parentId: null },
-      },
-    },
-
-    orderBy: { timestamp: 'desc' },
-    take: 20,
-  });
-
-  return res.json({ posts });
+  const { posts } = user;
+  posts.push(...user.reposts);
+  posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const latest20 = posts.slice(0, 20);
+  return res.json({ posts: latest20 });
 });
 
 exports.getLikedPosts = asyncHandler(async (req, res, next) => {
@@ -122,13 +128,7 @@ exports.getLikedPosts = asyncHandler(async (req, res, next) => {
 
     include: {
       likedPosts: {
-        include: {
-          user: true,
-          likes: true,
-          poll: true,
-          comments: { where: { parentId: null } },
-        },
-
+        include: postInclusions,
         orderBy: { timestamp: 'desc' },
         take: 20,
       },
@@ -144,19 +144,11 @@ exports.getLikedPosts = asyncHandler(async (req, res, next) => {
   return res.json({ posts: user.likedPosts });
 });
 
-exports.search = asyncHandler(async (req, res, next) => {
+exports.searchPosts = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
     where: { text: { contains: req.query.query, mode: 'insensitive' } },
 
-    include: {
-      user: true,
-      likes: true,
-      poll: true,
-
-      comments: {
-        where: { parentId: null },
-      },
-    },
+    include: postInclusions,
 
     orderBy: { likes: { _count: 'desc' } },
     take: 20,
@@ -170,13 +162,11 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     where: { id: parseInt(req.params.postId, 10) },
 
     include: {
-      user: true,
-      likes: true,
-      poll: true,
+      ...postInclusions,
 
       comments: {
         where: { parentId: null },
-        include: { user: true, likes: true, replies: true },
+        include: { user: true, likes: true, replies: true, reposts: true },
         orderBy: { timestamp: 'desc' },
         take: 20,
       },
@@ -249,12 +239,6 @@ exports.likePost = asyncHandler(async (req, res, next) => {
     include: { likes: true },
   });
 
-  if (!post) {
-    const err = new Error('Post not found');
-    err.status = 404;
-    return next(err);
-  }
-
   return res.json({ post });
 });
 
@@ -264,12 +248,6 @@ exports.unlikePost = asyncHandler(async (req, res, next) => {
     data: { likes: { disconnect: { id: req.user.id } } },
     include: { likes: true },
   });
-
-  if (!post) {
-    const err = new Error('Post not found');
-    err.status = 404;
-    return next(err);
-  }
 
   return res.json({ post });
 });
