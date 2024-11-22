@@ -175,17 +175,28 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 
 exports.updateProfile = [
   upload.fields([{ name: 'pfp' }, { name: 'headerImage' }]),
-
   body('bio').trim(),
+  body('displayName').trim(),
+  body('website', 'Website must be a valid URL').trim().isURL(),
 
   asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty() && req.body.website !== '') {
+      return res.status(400).json({ expectedErrors: errors.array() });
+    }
+
     if (req.user.username === 'Guest') {
       const err = new Error('Cannot edit guest account');
       err.status = 403;
       return next(err);
     }
 
-    const data = { bio: req.body.bio, displayName: req.body.displayName };
+    const data = {
+      bio: req.body.bio,
+      displayName: req.body.displayName,
+      website: req.body.website,
+    };
 
     if (req.files.pfp) {
       const pfp = req.files.pfp[0];
@@ -204,6 +215,7 @@ exports.updateProfile = [
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data,
+      include: { following: true },
     });
 
     return res.json({ user });
