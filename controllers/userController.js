@@ -177,6 +177,7 @@ exports.updateProfile = [
   upload.fields([{ name: 'pfp' }, { name: 'headerImage' }]),
   body('bio').trim(),
   body('displayName').trim(),
+  body('location').trim(),
   body('website', 'Website must be a valid URL').trim().isURL(),
 
   asyncHandler(async (req, res, next) => {
@@ -195,6 +196,7 @@ exports.updateProfile = [
     const data = {
       bio: req.body.bio,
       displayName: req.body.displayName,
+      location: req.body.location,
       website: req.body.website,
     };
 

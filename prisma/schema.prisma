@@ -15,6 +15,7 @@ model User {
   joinDate          DateTime  @default(now())
   headerUrl         String?
   bio               String?
+  location          String?
   website           String?
   passwordHash      String?
   provider          String?
