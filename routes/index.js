@@ -27,7 +27,8 @@ router.put('/users/unfollow', userController.unfollow);
 
 router.post('/posts', postController.createPost);
 router.get('/users/:userId/posts', postController.getUserPosts);
-router.get('/users/:userId/likes', postController.getLikedPosts);
+router.get('/users/:userId/posts/images', postController.getImagePosts);
+router.get('/users/:userId/posts/likes', postController.getLikedPosts);
 router.get('/posts', postController.getIndexPosts);
 router.get('/posts/search', postController.searchPosts);
 router.get('/posts/:postId', postController.getPost);
@@ -40,6 +41,7 @@ router.put('/posts/:postId/unlike', postController.unlikePost);
 router.post('/posts/:postId/comments', commentController.createRootComment);
 router.post('/comments/:commentId', commentController.createReply);
 router.get('/comments/:commentId', commentController.getComment);
+router.get('/users/:userId/comments', commentController.getUserComments);
 router.delete('/comments/:commentId', commentController.deleteComment);
 
 router.put('/comments/:commentId', commentController.updateComment);

@@ -21,7 +21,7 @@ exports.createRootComment = [
   body('text').trim(),
 
   asyncHandler(async (req, res, next) => {
-    const post = await prisma.comment.findUnique({
+    const post = await prisma.post.findUnique({
       where: { id: parseInt(req.params.postId, 10) },
     });
 
@@ -53,7 +53,7 @@ exports.createRootComment = [
         post: { connect: { id: post.id } },
       },
 
-      include: { user: true, likes: true, replies: true },
+      include: { user: true, likes: true, replies: true, reposts: true },
     });
 
     return res.json({ comment });
@@ -153,6 +153,48 @@ exports.getComment = asyncHandler(async (req, res, next) => {
 
   comment.commentChain = commentChain;
   return res.json({ comment });
+});
+
+exports.getUserComments = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(req.params.userId, 10) },
+    include: {
+      comments: {
+        include: {
+          user: true,
+          likes: true,
+          reposts: true,
+          replies: true,
+
+          parent: {
+            include: { user: true, likes: true, reposts: true, replies: true },
+          },
+
+          post: {
+            include: {
+              user: true,
+              reposts: true,
+              likes: true,
+              poll: true,
+              comments: { where: { parentId: null } },
+            },
+          },
+        },
+
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+        distinct: ['postId'],
+      },
+    },
+  });
+
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    return next(err);
+  }
+
+  return res.json({ comments: user.comments });
 });
 
 exports.deleteComment = asyncHandler(async (req, res, next) => {

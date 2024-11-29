@@ -122,6 +122,29 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
   return res.json({ posts: latest20 });
 });
 
+exports.getImagePosts = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(req.params.userId, 10) },
+
+    include: {
+      posts: {
+        where: { NOT: { imageUrl: null } },
+        include: postInclusions,
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+      },
+    },
+  });
+
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    return next(err);
+  }
+
+  return res.json({ posts: user.posts });
+});
+
 exports.getLikedPosts = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: parseInt(req.params.userId, 10) },

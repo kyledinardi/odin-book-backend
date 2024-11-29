@@ -30,16 +30,17 @@ model User {
 }
 
 model Post {
-  id        Int       @id @default(autoincrement())
-  text      String
-  timestamp DateTime  @default(now())
-  imageUrl  String?
-  poll      Poll?
-  user      User      @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-  likes     User[]    @relation("likedPosts")
-  comments  Comment[]
-  reposts   Repost[]
+  id           Int       @id @default(autoincrement())
+  text         String
+  timestamp    DateTime  @default(now())
+  feedItemType String    @default("post")
+  imageUrl     String?
+  poll         Poll?
+  user         User      @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  likes        User[]    @relation("likedPosts")
+  comments     Comment[]
+  reposts      Repost[]
 }
 
 model Poll {
@@ -57,28 +58,30 @@ model Poll {
 }
 
 model Comment {
-  id        Int       @id @default(autoincrement())
-  text      String
-  timestamp DateTime  @default(now())
-  imageUrl  String?
-  user      User      @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId    Int
-  parent    Comment?  @relation("replies", fields: [parentId], references: [id], onDelete: Cascade)
-  parentId  Int?
-  likes     User[]    @relation("likedComments")
-  replies   Comment[] @relation("replies")
-  reposts   Repost[]
+  id           Int       @id @default(autoincrement())
+  text         String
+  timestamp    DateTime  @default(now())
+  feedItemType String    @default("comment")
+  imageUrl     String?
+  user         User      @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  post         Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId       Int
+  parent       Comment?  @relation("replies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId     Int?
+  likes        User[]    @relation("likedComments")
+  replies      Comment[] @relation("replies")
+  reposts      Repost[]
 }
 
 model Repost {
-  id        Int      @id @default(autoincrement())
-  timestamp DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId    Int?
-  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  commentId Int?
+  id           Int      @id @default(autoincrement())
+  timestamp    DateTime @default(now())
+  feedItemType String   @default("repost")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  post         Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId       Int?
+  comment      Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId    Int?
 }
