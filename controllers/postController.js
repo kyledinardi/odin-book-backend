@@ -24,29 +24,29 @@ const postInclusions = {
   comments: { where: { parentId: null } },
 };
 
-const postAndRepostInclusions = {
-  posts: { include: postInclusions, take: 20 },
+const repostInclusions = {
+  user: true,
+  post: { include: postInclusions },
 
-  reposts: {
+  comment: {
     include: {
       user: true,
-      post: { include: postInclusions },
-
-      comment: {
-        include: {
-          user: true,
-          likes: true,
-          replies: true,
-          reposts: true,
-          post: { include: { user: true } },
-          parent: { include: { user: true } },
-        },
-      },
+      likes: true,
+      replies: true,
+      reposts: true,
+      post: { include: { user: true } },
+      parent: { include: { user: true } },
     },
-
-    take: 20,
   },
 };
+
+function getCursor(id) {
+  if (id) {
+    return { id: parseInt(id, 10) };
+  }
+
+  return undefined;
+}
 
 exports.createPost = [
   upload.single('image'),
@@ -84,29 +84,55 @@ exports.createPost = [
 exports.getIndexPosts = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
-
-    include: {
-      ...postAndRepostInclusions,
-      following: { include: postAndRepostInclusions },
-    },
+    include: { following: true },
   });
 
-  const { posts } = user;
-  posts.push(...user.reposts);
+  const followIds = user.following.map((follow) => follow.id);
 
-  user.following.forEach((followedUser) =>
-    posts.push(...followedUser.posts, ...followedUser.reposts),
-  );
+  const posts = await prisma.post.findMany({
+    where: { OR: [{ userId: user.id }, { userId: { in: followIds } }] },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    cursor: getCursor(req.query.postId),
+    skip: req.query.postId ? 1 : 0,
+    include: postInclusions,
+  });
 
-  posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  const latest20 = posts.slice(0, 20);
+  const reposts = await prisma.repost.findMany({
+    where: { OR: [{ userId: user.id }, { userId: { in: followIds } }] },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    cursor: getCursor(req.query.repostId),
+    skip: req.query.repostId ? 1 : 0,
+    include: repostInclusions,
+  });
+
+  const feed = [...posts, ...reposts];
+  feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const latest20 = feed.slice(0, 20);
   return res.json({ posts: latest20 });
 });
 
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: parseInt(req.params.userId, 10) },
-    include: postAndRepostInclusions,
+    include: {
+      posts: {
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+        cursor: getCursor(req.query.postId),
+        skip: req.query.postId ? 1 : 0,
+        include: postInclusions,
+      },
+
+      reposts: {
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+        cursor: getCursor(req.query.repostId),
+        skip: req.query.repostId ? 1 : 0,
+        include: repostInclusions,
+      },
+    },
   });
 
   if (!user) {
@@ -115,66 +141,46 @@ exports.getUserPosts = asyncHandler(async (req, res, next) => {
     return next(err);
   }
 
-  const { posts } = user;
-  posts.push(...user.reposts);
-  posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  const latest20 = posts.slice(0, 20);
+  const feed = [...user.posts, ...user.reposts];
+  feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const latest20 = feed.slice(0, 20);
   return res.json({ posts: latest20 });
 });
 
 exports.getImagePosts = asyncHandler(async (req, res, next) => {
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(req.params.userId, 10) },
-
-    include: {
-      posts: {
-        where: { NOT: { imageUrl: null } },
-        include: postInclusions,
-        orderBy: { timestamp: 'desc' },
-        take: 20,
-      },
-    },
+  const posts = await prisma.post.findMany({
+    where: { userId: parseInt(req.params.userId, 10), NOT: { imageUrl: null } },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    cursor: getCursor(req.query.postId),
+    skip: req.query.postId ? 1 : 0,
+    include: postInclusions,
   });
 
-  if (!user) {
-    const err = new Error('User not found');
-    err.status = 404;
-    return next(err);
-  }
-
-  return res.json({ posts: user.posts });
+  return res.json({ posts });
 });
 
 exports.getLikedPosts = asyncHandler(async (req, res, next) => {
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(req.params.userId, 10) },
-
-    include: {
-      likedPosts: {
-        include: postInclusions,
-        orderBy: { timestamp: 'desc' },
-        take: 20,
-      },
-    },
+  const posts = await prisma.post.findMany({
+    where: { likes: { some: { id: parseInt(req.params.userId, 10) } } },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    cursor: getCursor(req.query.postId),
+    skip: req.query.postId ? 1 : 0,
+    include: postInclusions,
   });
 
-  if (!user) {
-    const err = new Error('User not found');
-    err.status = 404;
-    return next(err);
-  }
-
-  return res.json({ posts: user.likedPosts });
+  return res.json({ posts });
 });
 
 exports.searchPosts = asyncHandler(async (req, res, next) => {
   const posts = await prisma.post.findMany({
     where: { text: { contains: req.query.query, mode: 'insensitive' } },
-
-    include: postInclusions,
-
-    orderBy: { likes: { _count: 'desc' } },
+    orderBy: [{ likes: { _count: 'desc' } }, { timestamp: 'asc' }],
     take: 20,
+    cursor: getCursor(req.query.postId),
+    skip: req.query.postId ? 1 : 0,
+    include: postInclusions,
   });
 
   return res.json({ posts });
@@ -186,12 +192,13 @@ exports.getPost = asyncHandler(async (req, res, next) => {
 
     include: {
       ...postInclusions,
+      _count: { select: { comments: true } },
 
       comments: {
         where: { parentId: null },
-        include: { user: true, likes: true, replies: true, reposts: true },
         orderBy: { timestamp: 'desc' },
         take: 20,
+        include: { user: true, likes: true, replies: true, reposts: true },
       },
     },
   });

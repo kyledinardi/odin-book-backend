@@ -20,6 +20,11 @@ router.get('/users/currentUser', userController.getCurrentUser);
 router.get('/users/search', userController.searchUsers);
 router.get('/users/:userId', userController.getUser);
 
+router.get('/users/:userId/following', userController.getFollowing);
+router.get('/users/:userId/followers', userController.getFollowers);
+router.get('/users/:userId/mutuals', userController.getMutuals);
+router.get('/users/:userId/followedFollowers', userController.getFfs);
+
 router.put('/users', userController.updateProfile);
 router.put('/users/password', userController.updatePassword);
 router.put('/users/follow', userController.follow);
@@ -29,6 +34,7 @@ router.post('/posts', postController.createPost);
 router.get('/users/:userId/posts', postController.getUserPosts);
 router.get('/users/:userId/posts/images', postController.getImagePosts);
 router.get('/users/:userId/posts/likes', postController.getLikedPosts);
+
 router.get('/posts', postController.getIndexPosts);
 router.get('/posts/search', postController.searchPosts);
 router.get('/posts/:postId', postController.getPost);
@@ -40,10 +46,13 @@ router.put('/posts/:postId/unlike', postController.unlikePost);
 
 router.post('/posts/:postId/comments', commentController.createRootComment);
 router.post('/comments/:commentId', commentController.createReply);
+
 router.get('/comments/:commentId', commentController.getComment);
 router.get('/users/:userId/comments', commentController.getUserComments);
-router.delete('/comments/:commentId', commentController.deleteComment);
+router.get('/posts/:postId/comments', commentController.getPostComments);
+router.get('/comments/:commentId/replies', commentController.getReplies);
 
+router.delete('/comments/:commentId', commentController.deleteComment);
 router.put('/comments/:commentId', commentController.updateComment);
 router.put('/comments/:commentId/like', commentController.likeComment);
 router.put('/comments/:commentId/unlike', commentController.unlikeComment);

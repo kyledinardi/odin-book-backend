@@ -18,6 +18,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 const prisma = new PrismaClient();
 
+function getCursor(id) {
+  if (id) {
+    return { id: parseInt(id, 10) };
+  }
+
+  return undefined;
+}
+
 exports.createUser = [
   body('displayName').trim(),
 
@@ -72,53 +80,15 @@ exports.createUser = [
 ];
 
 exports.getListedUsers = asyncHandler(async (req, res, next) => {
-  const currentUser = await prisma.user.findUnique({
-    where: { id: req.user.id },
-    include: { following: { include: { following: true } } },
+  const users = await prisma.user.findMany({
+    where: {
+      followers: { none: { id: req.user.id } },
+      NOT: { id: req.user.id },
+    },
+    
+    orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
+    take: 10,
   });
-
-  const filterList = currentUser.following.map((user) => user.id);
-  filterList.push(currentUser.id);
-
-  const followed = currentUser.following
-    .map((user) => user.following)
-    .flat()
-    .filter((user) => !filterList.includes(user.id));
-
-  let users;
-
-  if (followed.length > 0) {
-    const suggestions = [];
-
-    followed.forEach((user) => {
-      const i = suggestions.findIndex(
-        (suggestion) => suggestion.userId === user.id,
-      );
-
-      if (i > -1) {
-        suggestions[i].count += 1;
-      } else {
-        suggestions.push({ userId: user.id, count: 1 });
-      }
-    });
-
-    suggestions.sort((a, b) => (a.count > b.count ? -1 : 1));
-    const minCount = suggestions[4] ? suggestions[4].count : 1;
-
-    const suggestionIds = suggestions
-      .filter((suggestion) => suggestion.count >= minCount)
-      .map((suggestion) => suggestion.userId);
-
-    users = suggestionIds.map((suggestionId) =>
-      followed.find((user) => user.id === suggestionId),
-    );
-  } else {
-    users = await prisma.user.findMany({
-      where: { NOT: { id: { in: filterList } } },
-      orderBy: { followers: { _count: 'desc' } },
-      take: 5,
-    });
-  }
 
   return res.json({ users });
 });
@@ -139,6 +109,8 @@ exports.getCurrentUser = asyncHandler(async (req, res, next) => {
 });
 
 exports.searchUsers = asyncHandler(async (req, res, next) => {
+  const { userId } = req.query;
+
   const users = await prisma.user.findMany({
     where: {
       OR: [
@@ -147,8 +119,10 @@ exports.searchUsers = asyncHandler(async (req, res, next) => {
       ],
     },
 
-    orderBy: { followers: { _count: 'desc' } },
+    orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
     take: 20,
+    cursor: userId ? { id: parseInt(userId, 10) } : undefined,
+    skip: userId ? 1 : 0,
   });
 
   return res.json({ users });
@@ -159,8 +133,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
     where: { id: parseInt(req.params.userId, 10) },
 
     include: {
-      followers: { orderBy: { followers: { _count: 'desc' } } },
-      following: { orderBy: { followers: { _count: 'desc' } } },
+      _count: { select: { posts: true, followers: true, following: true } },
     },
   });
 
@@ -171,6 +144,62 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   }
 
   return res.json({ user });
+});
+
+exports.getFollowing = asyncHandler(async (req, res, next) => {
+  const users = await prisma.user.findMany({
+    where: { followers: { some: { id: parseInt(req.params.userId, 10) } } },
+    orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
+    take: 20,
+    cursor: getCursor(req.query.userId),
+    skip: req.query.userId ? 1 : 0,
+  });
+
+  return res.json({ users });
+});
+
+exports.getFollowers = asyncHandler(async (req, res, next) => {
+  const users = await prisma.user.findMany({
+    where: { following: { some: { id: parseInt(req.params.userId, 10) } } },
+    orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
+    take: 20,
+    cursor: getCursor(req.query.userId),
+    skip: req.query.userId ? 1 : 0,
+  });
+
+  return res.json({ users });
+});
+
+exports.getMutuals = asyncHandler(async (req, res, next) => {
+  const users = await prisma.user.findMany({
+    where: {
+      followers: { some: { id: parseInt(req.params.userId, 10) } },
+      following: { some: { id: parseInt(req.params.userId, 10) } },
+    },
+
+    orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
+    take: 20,
+    cursor: getCursor(req.query.userId),
+    skip: req.query.userId ? 1 : 0,
+  });
+
+  return res.json({ users });
+});
+
+exports.getFfs = asyncHandler(async (req, res, next) => {
+  const users = await prisma.user.findMany({
+    where: {
+      following: { some: { id: parseInt(req.params.userId, 10) } },
+      followers: { some: { id: req.user.id } },
+    },
+
+    orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
+    take: 20,
+    cursor: getCursor(req.query.userId),
+    skip: req.query.userId ? 1 : 0,
+  });
+
+  return res.json({ users });
 });
 
 exports.updateProfile = [

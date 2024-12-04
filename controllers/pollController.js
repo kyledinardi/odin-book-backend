@@ -21,7 +21,13 @@ exports.createPoll = [
         user: { connect: { id: req.user.id } },
       },
 
-      include: { user: true, likes: true, comments: true, poll: true },
+      include: {
+        user: true,
+        likes: true,
+        comments: true,
+        reposts: true,
+        poll: true,
+      },
     });
 
     return res.json({ post });

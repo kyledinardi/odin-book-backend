@@ -16,6 +16,23 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 const prisma = new PrismaClient();
 
+const commentInclusions = {
+  user: true,
+  likes: true,
+  reposts: true,
+  replies: true,
+
+  post: {
+    include: {
+      user: true,
+      reposts: true,
+      likes: true,
+      poll: true,
+      comments: { where: { parentId: null } },
+    },
+  },
+};
+
 exports.createRootComment = [
   upload.single('image'),
   body('text').trim(),
@@ -110,24 +127,12 @@ exports.getComment = asyncHandler(async (req, res, next) => {
     where: { id: parseInt(req.params.commentId, 10) },
 
     include: {
-      user: true,
-      likes: true,
-      reposts: true,
-
-      post: {
-        include: {
-          user: true,
-          reposts: true,
-          likes: true,
-          poll: true,
-          comments: { where: { parentId: null } },
-        },
-      },
+      ...commentInclusions,
 
       replies: {
-        include: { user: true, likes: true, replies: true, reposts: true },
         orderBy: { timestamp: 'desc' },
         take: 20,
+        include: { user: true, likes: true, replies: true, reposts: true },
       },
     },
   });
@@ -156,45 +161,52 @@ exports.getComment = asyncHandler(async (req, res, next) => {
 });
 
 exports.getUserComments = asyncHandler(async (req, res, next) => {
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(req.params.userId, 10) },
+  const { commentId } = req.query;
+
+  const comments = await prisma.comment.findMany({
+    where: { userId: parseInt(req.params.userId, 10) },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    cursor: commentId ? { id: parseInt(commentId, 10) } : undefined,
+    skip: req.query.commentId ? 1 : 0,
+    distinct: ['postId'],
+
     include: {
-      comments: {
-        include: {
-          user: true,
-          likes: true,
-          reposts: true,
-          replies: true,
+      ...commentInclusions,
 
-          parent: {
-            include: { user: true, likes: true, reposts: true, replies: true },
-          },
-
-          post: {
-            include: {
-              user: true,
-              reposts: true,
-              likes: true,
-              poll: true,
-              comments: { where: { parentId: null } },
-            },
-          },
-        },
-
-        orderBy: { timestamp: 'desc' },
-        take: 20,
-        distinct: ['postId'],
+      parent: {
+        include: { user: true, likes: true, reposts: true, replies: true },
       },
     },
   });
 
-  if (!user) {
-    const err = new Error('User not found');
-    err.status = 404;
-    return next(err);
-  }
+  return res.json({ comments });
+});
 
-  return res.json({ comments: user.comments });
+exports.getPostComments = asyncHandler(async (req, res, next) => {
+  const comments = await prisma.comment.findMany({
+    where: { postId: parseInt(req.params.postId, 10), parentId: null },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    cursor: { id: parseInt(req.query.commentId, 10) },
+    skip: 1,
+    include: { user: true, likes: true, reposts: true, replies: true },
+  });
+
+  return res.json({ comments });
+});
+
+exports.getReplies = asyncHandler(async (req, res, next) => {
+  const replies = await prisma.comment.findMany({
+    where: { parentId: parseInt(req.params.commentId, 10) },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    cursor: { id: parseInt(req.query.replyId, 10) },
+    skip: 1,
+    include: { user: true, likes: true, replies: true, reposts: true },
+  });
+
+  return res.json({ replies });
 });
 
 exports.deleteComment = asyncHandler(async (req, res, next) => {
@@ -209,7 +221,7 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
   }
 
   if (comment.userId !== req.user.id) {
-    const err = new Error('You cannot edit this comment');
+    const err = new Error('You cannot delete this comment');
     err.status = 403;
     return next(err);
   }
