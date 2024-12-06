@@ -231,6 +231,7 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
 });
 
 exports.updateComment = [
+  upload.single('image'),
   body('text').trim(),
 
   asyncHandler(async (req, res, next) => {
@@ -250,9 +251,33 @@ exports.updateComment = [
       return next(err);
     }
 
+    let imageUrl;
+
+    if (req.file) {
+      if (req.file) {
+        const result = await cloudinary.uploader.upload(req.file.path);
+        imageUrl = result.secure_url;
+        unlink(req.file.path);
+      }
+    }
+
+    if (req.body.gifUrl !== '') {
+      imageUrl = req.body.gifUrl;
+    }
+
     const updatedComment = await prisma.comment.update({
       where: { id: comment.id },
-      data: { text: req.body.text },
+      data: { text: req.body.text, imageUrl },
+
+      include: {
+        ...commentInclusions,
+
+        replies: {
+          orderBy: { timestamp: 'desc' },
+          take: 20,
+          include: { user: true, likes: true, replies: true, reposts: true },
+        },
+      },
     });
 
     return res.json({ comment: updatedComment });
