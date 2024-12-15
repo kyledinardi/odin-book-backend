@@ -31,13 +31,14 @@ router.put('/users/follow', userController.follow);
 router.put('/users/unfollow', userController.unfollow);
 
 router.post('/posts', postController.createPost);
+router.get('/posts', postController.getIndexPosts);
+router.get('/posts/refresh', postController.refreshIndexPosts);
+router.get('/posts/search', postController.searchPosts);
+router.get('/posts/:postId', postController.getPost);
+
 router.get('/users/:userId/posts', postController.getUserPosts);
 router.get('/users/:userId/posts/images', postController.getImagePosts);
 router.get('/users/:userId/posts/likes', postController.getLikedPosts);
-
-router.get('/posts', postController.getIndexPosts);
-router.get('/posts/search', postController.searchPosts);
-router.get('/posts/:postId', postController.getPost);
 
 router.delete('/posts/:postId', postController.deletePost);
 router.put('/posts/:postId', postController.updatePost);

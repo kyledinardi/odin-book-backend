@@ -18,6 +18,7 @@ function RNG(max) {
 async function main() {
   const userPromises = [];
   const followPromises = [];
+  
   const postPromises = [];
   const commentPromises = [];
   const postLikePromises = [];

@@ -113,6 +113,43 @@ exports.getIndexPosts = asyncHandler(async (req, res, next) => {
   return res.json({ posts: latest20 });
 });
 
+exports.refreshIndexPosts = asyncHandler(async (req, res, next) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    include: { following: true },
+  });
+
+  const followIds = user.following.map((follow) => follow.id);
+  const newestTimestamp = new Date(req.query.timestamp);
+
+  const posts = await prisma.post.findMany({
+    where: {
+      OR: [{ userId: user.id }, { userId: { in: followIds } }],
+      timestamp: { gt: newestTimestamp },
+    },
+
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    include: postInclusions,
+  });
+
+  const reposts = await prisma.repost.findMany({
+    where: {
+      OR: [{ userId: user.id }, { userId: { in: followIds } }],
+      timestamp: { gt: newestTimestamp },
+    },
+
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    include: repostInclusions,
+  });
+  
+  const feed = [...posts, ...reposts];
+  feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const latest20 = feed.slice(0, 20);
+  return res.json({ posts: latest20 });
+});
+
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: parseInt(req.params.userId, 10) },
@@ -271,7 +308,7 @@ exports.updatePost = [
     const updatedPost = await prisma.post.update({
       where: { id: post.id },
       data: { text: req.body.text, imageUrl },
-      
+
       include: {
         ...postInclusions,
         _count: { select: { comments: true } },
