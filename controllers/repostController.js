@@ -4,7 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 exports.repost = asyncHandler(async (req, res, next) => {
-  const { contentType } = req.body;
+  const { contentType, id } = req.body;
 
   if (contentType !== 'post' && contentType !== 'comment') {
     const err = new Error('Invalid contentType');
@@ -13,7 +13,7 @@ exports.repost = asyncHandler(async (req, res, next) => {
   }
 
   const isAlreadyReposted = await prisma.repost.findFirst({
-    where: { userId: req.user.id, [`${contentType}Id`]: req.body.id },
+    where: { userId: req.user.id, [`${contentType}Id`]: id },
   });
 
   if (isAlreadyReposted) {
@@ -23,7 +23,7 @@ exports.repost = asyncHandler(async (req, res, next) => {
   }
 
   const content = await prisma[contentType].findUnique({
-    where: { id: req.body.id },
+    where: { id },
   });
 
   if (!content) {
@@ -35,7 +35,17 @@ exports.repost = asyncHandler(async (req, res, next) => {
   const repost = await prisma.repost.create({
     data: {
       user: { connect: { id: req.user.id } },
-      [contentType]: { connect: { id: req.body.id } },
+      [contentType]: { connect: { id } },
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'repost',
+      sourceUser: { connect: { id: req.user.id } },
+      targetUser: { connect: { id: content.userId } },
+      post: contentType === 'post' ? { connect: { id } } : undefined,
+      comment: contentType === 'comment' ? { connect: { id } } : undefined,
     },
   });
 

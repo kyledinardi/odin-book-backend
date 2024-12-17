@@ -8,39 +8,42 @@ datasource db {
 }
 
 model User {
-  id                Int       @id @default(autoincrement())
-  username          String    @unique
-  displayName       String
-  pfpUrl            String
-  joinDate          DateTime  @default(now())
-  headerUrl         String?
-  bio               String?
-  location          String?
-  website           String?
-  passwordHash      String?
-  provider          String?
-  providerProfileId String?
-  followers         User[]    @relation("followers")
-  following         User[]    @relation("followers")
-  posts             Post[]    @relation("postAuthor")
-  likedPosts        Post[]    @relation("likedPosts")
-  comments          Comment[] @relation("commentAuthor")
-  likedComments     Comment[] @relation("likedComments")
-  reposts           Repost[]
+  id                     Int            @id @default(autoincrement())
+  username               String         @unique
+  displayName            String
+  pfpUrl                 String
+  joinDate               DateTime       @default(now())
+  headerUrl              String?
+  bio                    String?
+  location               String?
+  website                String?
+  passwordHash           String?
+  provider               String?
+  providerProfileId      String?
+  followers              User[]         @relation("followers")
+  following              User[]         @relation("followers")
+  posts                  Post[]         @relation("postAuthor")
+  likedPosts             Post[]         @relation("likedPosts")
+  comments               Comment[]      @relation("commentAuthor")
+  likedComments          Comment[]      @relation("likedComments")
+  reposts                Repost[]
+  triggeredNotifications Notification[] @relation("notificationSource")
+  receivedNotifications  Notification[] @relation("notificationTarget")
 }
 
 model Post {
-  id           Int       @id @default(autoincrement())
-  text         String
-  timestamp    DateTime  @default(now())
-  feedItemType String    @default("post")
-  imageUrl     String?
-  poll         Poll?
-  user         User      @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  userId       Int
-  likes        User[]    @relation("likedPosts")
-  comments     Comment[]
-  reposts      Repost[]
+  id            Int            @id @default(autoincrement())
+  text          String
+  timestamp     DateTime       @default(now())
+  feedItemType  String         @default("post")
+  imageUrl      String?
+  poll          Poll?
+  user          User           @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  likes         User[]         @relation("likedPosts")
+  comments      Comment[]
+  reposts       Repost[]
+  notifications Notification[]
 }
 
 model Poll {
@@ -58,20 +61,21 @@ model Poll {
 }
 
 model Comment {
-  id           Int       @id @default(autoincrement())
-  text         String
-  timestamp    DateTime  @default(now())
-  feedItemType String    @default("comment")
-  imageUrl     String?
-  user         User      @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  userId       Int
-  post         Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId       Int
-  parent       Comment?  @relation("replies", fields: [parentId], references: [id], onDelete: Cascade)
-  parentId     Int?
-  likes        User[]    @relation("likedComments")
-  replies      Comment[] @relation("replies")
-  reposts      Repost[]
+  id            Int            @id @default(autoincrement())
+  text          String
+  timestamp     DateTime       @default(now())
+  feedItemType  String         @default("comment")
+  imageUrl      String?
+  user          User           @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  post          Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId        Int
+  parent        Comment?       @relation("replies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId      Int?
+  likes         User[]         @relation("likedComments")
+  replies       Comment[]      @relation("replies")
+  reposts       Repost[]
+  notifications Notification[]
 }
 
 model Repost {
@@ -83,5 +87,20 @@ model Repost {
   post         Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId       Int?
   comment      Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId    Int?
+}
+
+model Notification {
+  id           Int      @id @default(autoincrement())
+  timestamp    DateTime @default(now())
+  type         String
+  isRead       Boolean  @default(false)
+  sourceUser   User     @relation("notificationSource", fields: [sourceUserId], references: [id], onDelete: Cascade)
+  sourceUserId Int
+  targetUser   User     @relation("notificationTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetUserId Int
+  post         Post?    @relation(fields: [postId], references: [id])
+  postId       Int?
+  comment      Comment? @relation(fields: [commentId], references: [id])
   commentId    Int?
 }

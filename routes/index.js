@@ -18,6 +18,7 @@ router.use(passport.authenticate('jwt', { session: false }));
 router.get('/users', userController.getListedUsers);
 router.get('/users/currentUser', userController.getCurrentUser);
 router.get('/users/search', userController.searchUsers);
+router.get('/notifications', userController.getNotifications);
 router.get('/users/:userId', userController.getUser);
 
 router.get('/users/:userId/following', userController.getFollowing);

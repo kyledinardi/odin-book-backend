@@ -48,14 +48,12 @@ exports.createRootComment = [
       return next(err);
     }
 
-    let imageUrl = null;
+    let imageUrl;
 
     if (req.file) {
-      if (req.file) {
-        const result = await cloudinary.uploader.upload(req.file.path);
-        imageUrl = result.secure_url;
-        unlink(req.file.path);
-      }
+      const result = await cloudinary.uploader.upload(req.file.path);
+      imageUrl = result.secure_url;
+      unlink(req.file.path);
     }
 
     if (req.body.gifUrl !== '') {
@@ -71,6 +69,15 @@ exports.createRootComment = [
       },
 
       include: { user: true, likes: true, replies: true, reposts: true },
+    });
+
+    await prisma.notification.create({
+      data: {
+        type: 'comment',
+        sourceUser: { connect: { id: req.user.id } },
+        targetUser: { connect: { id: post.userId } },
+        post: { connect: { id: post.id } },
+      },
     });
 
     return res.json({ comment });
@@ -92,14 +99,12 @@ exports.createReply = [
       return next(err);
     }
 
-    let imageUrl = null;
+    let imageUrl;
 
     if (req.file) {
-      if (req.file) {
-        const result = await cloudinary.uploader.upload(req.file.path);
-        imageUrl = result.secure_url;
-        unlink(req.file.path);
-      }
+      const result = await cloudinary.uploader.upload(req.file.path);
+      imageUrl = result.secure_url;
+      unlink(req.file.path);
     }
 
     if (req.body.gifUrl !== '') {
@@ -116,6 +121,15 @@ exports.createReply = [
       },
 
       include: { user: true, likes: true, replies: true, reposts: true },
+    });
+
+    await prisma.notification.create({
+      data: {
+        type: 'reply',
+        sourceUser: { connect: { id: req.user.id } },
+        targetUser: { connect: { id: parent.userId } },
+        comment: { connect: { id: parent.id } },
+      },
     });
 
     return res.json({ comment });
@@ -254,11 +268,9 @@ exports.updateComment = [
     let imageUrl;
 
     if (req.file) {
-      if (req.file) {
-        const result = await cloudinary.uploader.upload(req.file.path);
-        imageUrl = result.secure_url;
-        unlink(req.file.path);
-      }
+      const result = await cloudinary.uploader.upload(req.file.path);
+      imageUrl = result.secure_url;
+      unlink(req.file.path);
     }
 
     if (req.body.gifUrl !== '') {
@@ -289,6 +301,15 @@ exports.likeComment = asyncHandler(async (req, res, next) => {
     where: { id: parseInt(req.params.commentId, 10) },
     data: { likes: { connect: { id: req.user.id } } },
     include: { likes: true },
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'like',
+      sourceUser: { connect: { id: req.user.id } },
+      targetUser: { connect: { id: comment.userId } },
+      comment: { connect: { id: comment.id } },
+    },
   });
 
   return res.json({ comment });

@@ -53,14 +53,12 @@ exports.createPost = [
   body('text').trim(),
 
   asyncHandler(async (req, res, next) => {
-    let imageUrl = null;
+    let imageUrl;
 
     if (req.file) {
-      if (req.file) {
-        const result = await cloudinary.uploader.upload(req.file.path);
-        imageUrl = result.secure_url;
-        unlink(req.file.path);
-      }
+      const result = await cloudinary.uploader.upload(req.file.path);
+      imageUrl = result.secure_url;
+      unlink(req.file.path);
     }
 
     if (req.body.gifUrl !== '') {
@@ -143,7 +141,7 @@ exports.refreshIndexPosts = asyncHandler(async (req, res, next) => {
     take: 20,
     include: repostInclusions,
   });
-  
+
   const feed = [...posts, ...reposts];
   feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   const latest20 = feed.slice(0, 20);
@@ -294,11 +292,9 @@ exports.updatePost = [
     let imageUrl;
 
     if (req.file) {
-      if (req.file) {
-        const result = await cloudinary.uploader.upload(req.file.path);
-        imageUrl = result.secure_url;
-        unlink(req.file.path);
-      }
+      const result = await cloudinary.uploader.upload(req.file.path);
+      imageUrl = result.secure_url;
+      unlink(req.file.path);
     }
 
     if (req.body.gifUrl !== '') {
@@ -331,6 +327,15 @@ exports.likePost = asyncHandler(async (req, res, next) => {
     where: { id: parseInt(req.params.postId, 10) },
     data: { likes: { connect: { id: req.user.id } } },
     include: { likes: true },
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'like',
+      sourceUser: { connect: { id: req.user.id } },
+      targetUser: { connect: { id: post.userId } },
+      post: { connect: { id: post.id } },
+    },
   });
 
   return res.json({ post });

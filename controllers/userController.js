@@ -85,7 +85,7 @@ exports.getListedUsers = asyncHandler(async (req, res, next) => {
       followers: { none: { id: req.user.id } },
       NOT: { id: req.user.id },
     },
-    
+
     orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
     take: 10,
   });
@@ -96,7 +96,14 @@ exports.getListedUsers = asyncHandler(async (req, res, next) => {
 exports.getCurrentUser = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
-    include: { following: true },
+
+    include: {
+      following: true,
+
+      _count: {
+        select: { receivedNotifications: { where: { isRead: false } } },
+      },
+    },
   });
 
   if (!user) {
@@ -126,6 +133,20 @@ exports.searchUsers = asyncHandler(async (req, res, next) => {
   });
 
   return res.json({ users });
+});
+
+exports.getNotifications = asyncHandler(async (req, res, next) => {
+  const notifications = await prisma.notification.findMany({
+    where: { targetUserId: req.user.id },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+    cursor: getCursor(req.query.notificationId),
+    skip: req.query.notificationId ? 1 : 0,
+    include: { sourceUser: true },
+  });
+
+  await prisma.notification.updateMany({ data: { isRead: true } });
+  return res.json({ notifications });
 });
 
 exports.getUser = asyncHandler(async (req, res, next) => {
@@ -302,6 +323,14 @@ exports.follow = asyncHandler(async (req, res, next) => {
     where: { id: req.user.id },
     data: { following: { connect: { id: req.body.userId } } },
     include: { following: true },
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'follow',
+      sourceUser: { connect: { id: req.user.id } },
+      targetUser: { connect: { id: req.body.userId } },
+    },
   });
 
   return res.json({ user });
