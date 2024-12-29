@@ -6,6 +6,8 @@ const postController = require('../controllers/postController');
 const pollController = require('../controllers/pollController');
 const commentController = require('../controllers/commentController');
 const repostController = require('../controllers/repostController');
+const roomController = require('../controllers/roomController');
+const messageController = require('../controllers/messageController');
 
 const router = express.Router();
 
@@ -63,5 +65,14 @@ router.post('/polls', pollController.createPoll);
 router.put('/polls/:pollId', pollController.voteInPoll);
 router.post('/reposts', repostController.repost);
 router.delete('/reposts', repostController.unrepost);
+
+router.post('/rooms', roomController.findOrCreateRoom);
+router.get('/rooms', roomController.getAllRooms);
+router.get('/rooms/:roomId', roomController.getRoom);
+
+router.post('/rooms/:roomId/messages', messageController.createMessage);
+router.get('/rooms/:roomId/messages', messageController.getMessages);
+router.delete('/messages/:messageId', messageController.deleteMessage);
+router.put('/messages/:messageId', messageController.updateMessage);
 
 module.exports = router;

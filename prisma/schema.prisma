@@ -29,12 +29,14 @@ model User {
   reposts                Repost[]
   triggeredNotifications Notification[] @relation("notificationSource")
   receivedNotifications  Notification[] @relation("notificationTarget")
+  rooms                  Room[]
+  messages               Message[]
 }
 
 model Post {
   id            Int            @id @default(autoincrement())
-  text          String
   timestamp     DateTime       @default(now())
+  text          String
   feedItemType  String         @default("post")
   imageUrl      String?
   poll          Poll?
@@ -62,8 +64,8 @@ model Poll {
 
 model Comment {
   id            Int            @id @default(autoincrement())
-  text          String
   timestamp     DateTime       @default(now())
+  text          String
   feedItemType  String         @default("comment")
   imageUrl      String?
   user          User           @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
@@ -103,4 +105,22 @@ model Notification {
   postId       Int?
   comment      Comment? @relation(fields: [commentId], references: [id])
   commentId    Int?
+}
+
+model Room {
+  id          Int       @id @default(autoincrement())
+  lastUpdated DateTime  @default(now())
+  users       User[]
+  messages    Message[]
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  text      String
+  imageUrl  String?
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  room      Room     @relation(fields: [roomId], references: [id])
+  roomId    Int
 }
