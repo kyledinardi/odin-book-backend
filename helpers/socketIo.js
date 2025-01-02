@@ -6,6 +6,10 @@ function setupSocketIo(server) {
   io.on('connection', (socket) => {
     socket.on('joinRoom', (roomId) => socket.join(roomId));
 
+    socket.on('sendIsTyping', (data) =>
+      socket.broadcast.to(data.roomId).emit('receiveIsTyping', data.isTyping),
+    );
+
     socket.on('submitMessage', (data) =>
       io.to(data.roomId).emit('addNewMessage', data.message),
     );
