@@ -135,20 +135,6 @@ exports.searchUsers = asyncHandler(async (req, res, next) => {
   return res.json({ users });
 });
 
-exports.getNotifications = asyncHandler(async (req, res, next) => {
-  const notifications = await prisma.notification.findMany({
-    where: { targetUserId: req.user.id },
-    orderBy: { timestamp: 'desc' },
-    take: 20,
-    cursor: getCursor(req.query.notificationId),
-    skip: req.query.notificationId ? 1 : 0,
-    include: { sourceUser: true },
-  });
-
-  await prisma.notification.updateMany({ data: { isRead: true } });
-  return res.json({ notifications });
-});
-
 exports.getUser = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: parseInt(req.params.userId, 10) },
