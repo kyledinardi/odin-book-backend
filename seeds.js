@@ -18,7 +18,6 @@ function rng(max) {
 async function main() {
   const userPromises = [];
   const messagePromises = [];
-  const roomPromises = [];
   const followPromises = [];
 
   const postPromises = [];
@@ -51,26 +50,13 @@ async function main() {
   });
 
   for (let i = 0; i < 100; i += 1) {
-    let username;
-    let displayName;
-    let bio;
-    let passwordHash;
-
-    // if (i === 0) {
-    //   displayName = 'Guest';
-    //   username = 'Guest';
-    //   passwordHash = guestPasswordHash;
-    // } else {
-    bio = faker.person.bio();
-    passwordHash = crypto.randomUUID();
-    displayName = faker.person.fullName();
+    const displayName = faker.person.fullName();
     const splitDisplayName = displayName.split(' ');
 
-    username = faker.internet.username({
+    const username = faker.internet.username({
       firstName: splitDisplayName[0],
       lastName: splitDisplayName[splitDisplayName.length - 1],
     });
-    // }
 
     const usernameHash = Crypto.createHash('sha256')
       .update(username.toLowerCase())
@@ -81,9 +67,9 @@ async function main() {
         data: {
           displayName,
           username,
-          passwordHash,
+          passwordHash: crypto.randomUUID(),
           pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
-          bio,
+          bio: faker.person.bio(),
           joinDate: faker.date.between({ from: getDate(50), to: getDate(20) }),
         },
       }),
@@ -92,25 +78,11 @@ async function main() {
 
   console.log('Creating users...');
   await Promise.all(userPromises);
-
-  for (let i = 3; i <= 100; i += 1) {
-    roomPromises.push(
-      prisma.room.create({
-        data: {
-          users: { connect: [{ id: 1 }, { id: i }] },
-          lastUpdated: faker.date.between({ from: getDate(1), to: getDate(0) }),
-        },
-      }),
-    );
-  }
-
-  console.log('Creating test chatrooms...');
+  console.log('Creating chatroom...');
 
   await prisma.room.create({
     data: { users: { connect: [{ id: 1 }, { id: 2 }] } },
   });
-
-  await Promise.all(roomPromises);
 
   for (let i = 0; i < 100; i += 1) {
     messagePromises.push(
@@ -125,7 +97,7 @@ async function main() {
     );
   }
 
-  console.log('Creating test messages...');
+  console.log('Creating messages...');
   await Promise.all(messagePromises);
 
   for (let i = 0; i < 500; i += 1) {
