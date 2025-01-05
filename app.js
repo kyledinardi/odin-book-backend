@@ -3,6 +3,8 @@ require('dotenv').config();
 require('./helpers/passport');
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
+const helmet = require('helmet');
 const http = require('http');
 const { setupSocketIo } = require('./helpers/socketIo');
 const indexRouter = require('./routes/index');
@@ -12,7 +14,10 @@ const server = http.createServer(app);
 const PORT = 3000;
 
 app.use(cors());
+app.use(compression());
 app.use(express.json());
+app.use(helmet());
+
 app.use(express.urlencoded({ extended: false }));
 app.use('/', indexRouter);
 setupSocketIo(server);
