@@ -1,6 +1,14 @@
-# Odin Book Backend
+# Odin-Book Backend
 
-Backend API for [Odin Book](https://github.com/kyledinardi/odin-book-frontend) build with Express.js, PostgreSQL, and Prisma
+Backend API for Odin-Book.
+
+## Live
+
+https://odin-book-frontend.pages.dev/
+
+## Frontend
+
+https://github.com/kyledinardi/odin-book-frontend
 
 ## Features
 
@@ -11,7 +19,7 @@ Backend API for [Odin Book](https://github.com/kyledinardi/odin-book-frontend) b
 
 ## Installation
 
-1. Open the termainal and clone the repository to your computer: `git clone git@github.com:kyledinardi/odin-book-backend.git`
+1. Open the terminal and clone the repository to your computer: `git clone git@github.com:kyledinardi/odin-book-backend.git`
 2. Change to the project directory: `cd odin-book-backend`
 3. Install packages: `npm install`
 4. Create a .env file in the current directory and add these lines. 
