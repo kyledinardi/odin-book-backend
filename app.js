@@ -44,5 +44,5 @@ app.use((err, req, res, next) => {
 });
 
 server.listen(PORT, () =>
-  console.log(`Odin Book - listening on port ${PORT}!`),
+  console.log(`Odin-Book - listening on port ${PORT}!`),
 );

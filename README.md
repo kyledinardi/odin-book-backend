@@ -1,6 +1,14 @@
-# Odin Book Backend
+# Odin-Book Backend
 
-Backend API for [Odin Book](https://github.com/kyledinardi/odin-book-frontend) build with Express.js, PostgreSQL, and Prisma
+Backend API for Odin-Book.
+
+## Live
+
+https://odin-book-frontend.pages.dev/
+
+## Frontend
+
+https://github.com/kyledinardi/odin-book-frontend
 
 ## Features
 
