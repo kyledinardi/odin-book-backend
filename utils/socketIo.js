@@ -1,10 +1,11 @@
 const { Server } = require('socket.io');
 const { PrismaClient } = require('@prisma/client');
+const { FRONTEND_URL } = require('./config');
 
 const prisma = new PrismaClient();
 
 function setupSocketIo(server) {
-  const io = new Server(server, { cors: { origin: process.env.FRONTEND_URL } });
+  const io = new Server(server, { cors: { origin: FRONTEND_URL } });
 
   io.on('connection', (socket) => {
     socket.on('joinUserRoom', (userId) => socket.join(`userRoom-${userId}`));

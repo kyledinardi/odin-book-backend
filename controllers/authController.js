@@ -2,6 +2,7 @@ require('dotenv').config();
 const { body } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
+const { JWT_SECRET, FRONTEND_URL } = require('../utils/config');
 
 exports.local = [
   body('username').trim(),
@@ -24,7 +25,7 @@ exports.local = [
           return next(loginErr);
         }
 
-        const token = jwt.sign(user, process.env.JWT_SECRET);
+        const token = jwt.sign(user, JWT_SECRET);
         return res.json({ user, token });
       });
 
@@ -43,7 +44,7 @@ exports.githubCallback = (req, res, next) => {
 
     if (!user) {
       return res.redirect(
-        `${process.env.FRONTEND_URL}/login?error=${info.message}`,
+        `${FRONTEND_URL}/login?error=${info.message}`,
       );
     }
 
@@ -52,10 +53,10 @@ exports.githubCallback = (req, res, next) => {
         return next(loginErr);
       }
 
-      const token = jwt.sign(user, process.env.JWT_SECRET);
+      const token = jwt.sign(user, JWT_SECRET);
 
       return res.redirect(
-        `${process.env.FRONTEND_URL}/login?token=${token}&userId=${user.id}`,
+        `${FRONTEND_URL}/login?token=${token}&userId=${user.id}`,
       );
     });
 

@@ -22,7 +22,8 @@ https://github.com/kyledinardi/odin-book-frontend
 1. Open the terminal and clone the repository to your computer: `git clone git@github.com:kyledinardi/odin-book-backend.git`
 2. Change to the project directory: `cd odin-book-backend`
 3. Install packages: `npm install`
-4. Create a .env file in the current directory and add these lines. 
+4. Create a .env file in the current directory and add these lines.
+
 ```
 CLOUDINARY_URL=<cloudinary-api-url>
 DATABASE_URL=<postgres-url>
@@ -31,4 +32,6 @@ GITHUB_CLIENT_ID=<GitHub-OAuth-client-id>
 GITHUB_CLIENT_SECRET=<GitHub-OAuth-client-secret>
 JWT_SECRET=<any-string-you-want>
 ```
-5. Start the server: `npm start`
+
+5. Seed the database (optional): `npm run reset`
+6. Start the server: `npm start`

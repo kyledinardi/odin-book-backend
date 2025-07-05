@@ -6,6 +6,7 @@ const GitHubStrategy = require('passport-github2').Strategy;
 const JwtStrategy = require('passport-jwt').Strategy;
 const { ExtractJwt } = require('passport-jwt');
 const { PrismaClient } = require('@prisma/client');
+const { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, JWT_SECRET } = require('./config');
 
 const prisma = new PrismaClient();
 
@@ -34,8 +35,8 @@ passport.use(
 passport.use(
   new GitHubStrategy(
     {
-      clientID: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      clientID: GITHUB_CLIENT_ID,
+      clientSecret: GITHUB_CLIENT_SECRET,
       callbackUrl: 'http://localhost:3000/auth/github/callback',
     },
 
@@ -87,7 +88,7 @@ passport.use(
   new JwtStrategy(
     {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: JWT_SECRET,
     },
 
     async (jwtPayload, done) => {
