@@ -7,7 +7,6 @@ const http = require('http');
 const helmet = require('helmet');
 const indexRouter = require('./routes/index');
 const { setupSocketIo } = require('./utils/socketIo');
-const { PORT } = require('./utils/config');
 
 const app = express();
 const server = http.createServer(app);
@@ -43,6 +42,4 @@ app.use((err, req, res, next) => {
   return res.json(response);
 });
 
-server.listen(PORT, () =>
-  console.log(`Odin-Book - listening on port ${PORT}`)
-);
+module.exports = server;

@@ -2,10 +2,12 @@
   "name": "odin-book-backend",
   "version": "1.0.0",
   "private": true,
+  "main": "index.js",
   "scripts": {
-    "start": "node --watch ./app.js",
-    "reset": "npx prisma migrate reset && node seeds.js && npm start",
-    "migrate": "npx prisma migrate reset && npx prisma migrate dev && node seeds.js && npm start"
+    "start": "NODE_ENV=production node ./index.js",
+    "dev": " NODE_ENV=development node --watch ./index.js",
+    "reset": "npx prisma migrate reset && node seeds.js && npm run dev",
+    "migrate": "npx prisma migrate reset && npx prisma migrate dev && node seeds.js && npm run dev"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
