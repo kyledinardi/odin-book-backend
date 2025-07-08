@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
-require('./utils/passport');
 const express = require('express');
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const { makeExecutableSchema } = require('@graphql-tools/schema');
-const { useServer } = require('graphql-ws');
+// eslint-disable-next-line import/no-unresolved
+const { useServer } = require('graphql-ws/use/ws');
 const { ApolloServer } = require('@apollo/server');
 const { expressMiddleware } = require('@apollo/server/express4');
 const {
@@ -18,6 +18,7 @@ const jwt = require('jsonwebtoken');
 const typeDefs = require('./schema');
 const resolvers = require('./resolvers');
 const { PORT, JWT_SECRET } = require('./utils/config');
+require('./utils/passport');
 const { setupSocketIo } = require('./utils/socketIo');
 
 async function startServer() {
@@ -31,6 +32,7 @@ async function startServer() {
     schema,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
+
       {
         async serverWillStart() {
           return {
@@ -48,11 +50,17 @@ async function startServer() {
 
   app.use(
     '/',
-    helmet(),
+
+    helmet({
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: false,
+    }),
+
     cors(),
     compression(),
     express.json(),
     express.urlencoded({ extended: false }),
+
     expressMiddleware(server, {
       context: async ({ req }) => {
         const auth = req ? req.headers.authorization : null;
@@ -72,8 +80,8 @@ async function startServer() {
     })
   );
 
-  setupSocketIo(server);
-  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  setupSocketIo(httpServer);
+  httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
 startServer();
