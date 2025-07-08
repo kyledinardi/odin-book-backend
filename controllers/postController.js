@@ -148,6 +148,45 @@ exports.refreshIndexPosts = asyncHandler(async (req, res, next) => {
   return res.json({ posts: latest20 });
 });
 
+exports.searchPosts = asyncHandler(async (req, res, next) => {
+  const posts = await prisma.post.findMany({
+    where: { text: { contains: req.query.query, mode: 'insensitive' } },
+    orderBy: [{ likes: { _count: 'desc' } }, { timestamp: 'asc' }],
+    take: 20,
+    cursor: getCursor(req.query.postId),
+    skip: req.query.postId ? 1 : 0,
+    include: postInclusions,
+  });
+
+  return res.json({ posts });
+});
+
+exports.getPost = asyncHandler(async (req, res, next) => {
+  const post = await prisma.post.findUnique({
+    where: { id: parseInt(req.params.postId, 10) },
+
+    include: {
+      ...postInclusions,
+      _count: { select: { comments: true } },
+
+      comments: {
+        where: { parentId: null },
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+        include: { user: true, likes: true, replies: true, reposts: true },
+      },
+    },
+  });
+
+  if (!post) {
+    const err = new Error('Post not found');
+    err.status = 404;
+    return next(err);
+  }
+
+  return res.json({ post });
+});
+
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({
     where: { id: parseInt(req.params.userId, 10) },
@@ -206,45 +245,6 @@ exports.getLikedPosts = asyncHandler(async (req, res, next) => {
   });
 
   return res.json({ posts });
-});
-
-exports.searchPosts = asyncHandler(async (req, res, next) => {
-  const posts = await prisma.post.findMany({
-    where: { text: { contains: req.query.query, mode: 'insensitive' } },
-    orderBy: [{ likes: { _count: 'desc' } }, { timestamp: 'asc' }],
-    take: 20,
-    cursor: getCursor(req.query.postId),
-    skip: req.query.postId ? 1 : 0,
-    include: postInclusions,
-  });
-
-  return res.json({ posts });
-});
-
-exports.getPost = asyncHandler(async (req, res, next) => {
-  const post = await prisma.post.findUnique({
-    where: { id: parseInt(req.params.postId, 10) },
-
-    include: {
-      ...postInclusions,
-      _count: { select: { comments: true } },
-
-      comments: {
-        where: { parentId: null },
-        orderBy: { timestamp: 'desc' },
-        take: 20,
-        include: { user: true, likes: true, replies: true, reposts: true },
-      },
-    },
-  });
-
-  if (!post) {
-    const err = new Error('Post not found');
-    err.status = 404;
-    return next(err);
-  }
-
-  return res.json({ post });
 });
 
 exports.deletePost = asyncHandler(async (req, res, next) => {

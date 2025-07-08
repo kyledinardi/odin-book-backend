@@ -61,6 +61,11 @@ router.put('/comments/:commentId', commentController.updateComment);
 router.put('/comments/:commentId/like', commentController.likeComment);
 router.put('/comments/:commentId/unlike', commentController.unlikeComment);
 
+router.post('/polls', pollController.createPoll);
+router.put('/polls/:pollId', pollController.voteInPoll);
+router.post('/reposts', repostController.repost);
+router.delete('/reposts', repostController.unrepost);
+
 router.post('/rooms', roomController.findOrCreateRoom);
 router.get('/rooms', roomController.getAllRooms);
 router.get('/rooms/:roomId', roomController.getRoom);
@@ -71,10 +76,5 @@ router.delete('/messages/:messageId', messageController.deleteMessage);
 router.put('/messages/:messageId', messageController.updateMessage);
 router.get('/notifications', notifController.getNotifications);
 router.get('/notifications/refresh', notifController.refreshNotifications);
-
-router.post('/polls', pollController.createPoll);
-router.put('/polls/:pollId', pollController.voteInPoll);
-router.post('/reposts', repostController.repost);
-router.delete('/reposts', repostController.unrepost);
 
 module.exports = router;

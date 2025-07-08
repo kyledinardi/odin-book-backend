@@ -1,45 +1,79 @@
 /* eslint-disable no-console */
 require('./utils/passport');
 const express = require('express');
+const http = require('http');
+const { WebSocketServer } = require('ws');
+const { makeExecutableSchema } = require('@graphql-tools/schema');
+const { useServer } = require('graphql-ws');
+const { ApolloServer } = require('@apollo/server');
+const { expressMiddleware } = require('@apollo/server/express4');
+const {
+  ApolloServerPluginDrainHttpServer,
+} = require('@apollo/server/plugin/drainHttpServer');
+const { PrismaClient } = require('@prisma/client');
+const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');
-const http = require('http');
-const helmet = require('helmet');
-const indexRouter = require('./routes/index');
+const jwt = require('jsonwebtoken');
+const typeDefs = require('./schema');
+const resolvers = require('./resolvers');
+const { PORT, JWT_SECRET } = require('./utils/config');
 const { setupSocketIo } = require('./utils/socketIo');
 
-const app = express();
-const server = http.createServer(app);
+async function startServer() {
+  const app = express();
+  const httpServer = http.createServer(app);
+  const wsServer = new WebSocketServer({ server: httpServer, path: '/' });
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
+  const serverCleanup = useServer({ schema }, wsServer);
 
-app.use(helmet());
-app.use(cors());
-app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+  const server = new ApolloServer({
+    schema,
+    plugins: [
+      ApolloServerPluginDrainHttpServer({ httpServer }),
+      {
+        async serverWillStart() {
+          return {
+            async drainServer() {
+              await serverCleanup.dispose();
+            },
+          };
+        },
+      },
+    ],
+  });
 
-app.use('/', indexRouter);
-setupSocketIo(server);
+  await server.start();
+  const prisma = new PrismaClient();
 
-app.use((req, res, next) => {
-  const err = new Error('Endpoint not found');
-  err.status = 404;
-  next(err);
-});
+  app.use(
+    '/',
+    helmet(),
+    cors(),
+    compression(),
+    express.json(),
+    express.urlencoded({ extended: false }),
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        const auth = req ? req.headers.authorization : null;
 
-app.use((err, req, res, next) => {
-  const status = err.status || 500;
-  res.status(status);
+        if (!auth || !auth.toLowerCase().startsWith('bearer ')) {
+          return null;
+        }
 
-  const response = {
-    error: {
-      message: err.message,
-      status,
-      stack: err.stack,
-    },
-  };
+        const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET);
 
-  console.error(response);
-  return res.json(response);
-});
+        const currentUser = await prisma.user.findUnique({
+          where: { id: decodedToken.id },
+        });
 
-module.exports = server;
+        return { currentUser };
+      },
+    })
+  );
+
+  setupSocketIo(server);
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+startServer();
