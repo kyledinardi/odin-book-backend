@@ -111,10 +111,10 @@ const typeDefs = `
     searchUsers(query: String!, userId: ID): [User]
     getCurrentUser: User
     getUser(userId: ID!): User
-    getFollowing(userId: ID!, paginationId: ID): [User]
-    getFollowers(userId: ID!, paginationId: ID): [User]
-    getMutuals(userId: ID!, paginationId: ID): [User]
-    getFfs(userId: ID!, paginationId: ID): [User]
+    getFollowing(userId: ID!, cursor: ID): [User]
+    getFollowers(userId: ID!, cursor: ID): [User]
+    getMutuals(userId: ID!, cursor: ID): [User]
+    getFfs(userId: ID!, cursor: ID): [User]
 
     # getIndexPosts(postId: ID, repostId: ID): [Post]
     # refreshIndexPosts(timestamp: String!): [Post]

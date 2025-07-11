@@ -1,7 +1,4 @@
-const resolvers = {
-  Query: {
-    getCurrentUser: (parent, args, { currentUser }) => currentUser,
-  },
-};
+const { userQueries, userMutations } = require('./resolvers/userResolvers');
 
+const resolvers = { Query: { ...userQueries }, Mutation: { ...userMutations } };
 module.exports = resolvers;
