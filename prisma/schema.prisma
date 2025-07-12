@@ -50,8 +50,6 @@ model Post {
 
 model Poll {
   id           Int      @id @default(autoincrement())
-  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId       Int      @unique
   choices      String[]
   voters       Int[]
   choice1Votes Int[]
@@ -60,6 +58,8 @@ model Poll {
   choice4Votes Int[]
   choice5Votes Int[]
   choice6Votes Int[]
+  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId       Int      @unique
 }
 
 model Comment {

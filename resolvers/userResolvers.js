@@ -5,17 +5,10 @@ const jwt = require('jsonwebtoken');
 const { createHash } = require('node:crypto');
 const authenticate = require('../utils/authenticate');
 const { JWT_SECRET } = require('../utils/config');
+const getPaginationOptions = require('../utils/paginationOptions');
+const { userInclusions } = require('../utils/inclusions');
 
 const prisma = new PrismaClient();
-
-function getPaginationOptions(userId) {
-  return {
-    orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
-    take: 20,
-    cursor: userId ? { id: Number(userId) } : undefined,
-    skip: userId ? 1 : 0,
-  };
-}
 
 const userQueries = {
   getListedUsers: authenticate(async (parent, args, { currentUser }) => {
@@ -25,6 +18,7 @@ const userQueries = {
         NOT: { id: currentUser.id },
       },
 
+      include: userInclusions,
       orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
       take: 10,
     });
@@ -43,6 +37,8 @@ const userQueries = {
         ],
       },
 
+      include: userInclusions,
+      orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
       ...getPaginationOptions(userId),
     });
 
@@ -52,10 +48,7 @@ const userQueries = {
   getUser: authenticate(async (parent, { userId }) => {
     const user = await prisma.user.findUnique({
       where: { id: Number(userId) },
-
-      include: {
-        _count: { select: { posts: true, followers: true, following: true } },
-      },
+      include: userInclusions,
     });
 
     if (!user) {
@@ -70,6 +63,8 @@ const userQueries = {
   getFollowing: authenticate(async (parent, { userId, cursor }) => {
     const following = await prisma.user.findMany({
       where: { followers: { some: { id: Number(userId) } } },
+      include: userInclusions,
+      orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
       ...getPaginationOptions(cursor),
     });
 
@@ -79,6 +74,8 @@ const userQueries = {
   getFollowers: authenticate(async (parent, { userId, cursor }) => {
     const followers = await prisma.user.findMany({
       where: { following: { some: { id: Number(userId) } } },
+      include: userInclusions,
+      orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
       ...getPaginationOptions(cursor),
     });
 
@@ -92,31 +89,37 @@ const userQueries = {
         following: { some: { id: Number(userId) } },
       },
 
+      include: userInclusions,
+      orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
       ...getPaginationOptions(cursor),
     });
 
     return mutuals;
   }),
 
-  getFfs: authenticate(
-    async (parent, { userId, cursor }, { currentUser }) => {
-      const ffs = await prisma.user.findMany({
-        where: {
-          following: { some: { id: Number(userId) } },
-          followers: { some: { id: currentUser.id } },
-        },
+  getFfs: authenticate(async (parent, { userId, cursor }, { currentUser }) => {
+    const ffs = await prisma.user.findMany({
+      where: {
+        following: { some: { id: Number(userId) } },
+        followers: { some: { id: currentUser.id } },
+      },
 
-        ...getPaginationOptions(cursor),
-      });
+      include: userInclusions,
+      orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
+      ...getPaginationOptions(cursor),
+    });
 
-      return ffs;
-    }
-  ),
+    return ffs;
+  }),
 };
 
 const userMutations = {
   localLogin: async (parent, { username, password }) => {
-    const user = await prisma.user.findUnique({ where: { username } });
+    const user = await prisma.user.findUnique({
+      where: { username },
+      include: userInclusions,
+    });
+
     const match = await bcrypt.compare(password, user.passwordHash);
 
     if (!user || !match) {
@@ -171,6 +174,8 @@ const userMutations = {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
+      include: userInclusions,
+
       data: {
         username,
         displayName: displayName || username,

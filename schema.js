@@ -1,4 +1,11 @@
 const typeDefs = `
+  type UserCounts {
+    followers: Int!
+    following: Int!
+    posts: Int!
+    receivedNotifications: Int!
+  }
+
   type User {
     id: ID!
     username: String!
@@ -10,17 +17,8 @@ const typeDefs = `
     passwordHash: String
     provider: String
     providerProfileId: String
-    followers: [User]
     following: [User]
-    posts: [Post]
-    likedPosts: [Post]
-    comments: [Comment]
-    likedComments: [Comment]
-    reposts: [Repost]
-    triggeredNotifications: [Notification]
-    receivedNotifications: [Notification]
-    rooms: [Room]
-    messages: [Message]
+    _count: UserCounts!
   }
 
   type Post {
@@ -31,10 +29,9 @@ const typeDefs = `
     imageUrl: String
     poll: Poll
     user: User!
+    userId: Int!
     likes: [User]
     comments: [Comment]
-    reposts: [Repost]
-    notifications: [Notification]
   }
 
   type Poll {
@@ -48,6 +45,7 @@ const typeDefs = `
     choice5Votes: [Int]
     choice6Votes: [Int]
     post: Post!
+    postId: Int!
   }
 
   type Comment {
@@ -57,8 +55,11 @@ const typeDefs = `
     feedItemType: String!
     imageUrl: String
     user: User!
+    userId: Int!
     post: Post!
+    postId: Int!
     parent: Comment
+    parentId: Int
     likes: [User]
     replies: [Comment]
     reposts: [Repost]
@@ -70,8 +71,11 @@ const typeDefs = `
     timestamp: String!
     feedItemType: String!
     user: User!
+    userId: Int!
     post: Post
+    postId: Int
     comment: Comment
+    commentId: Int
   }
 
   type Notification {
@@ -80,9 +84,13 @@ const typeDefs = `
     type: String!
     isRead: Boolean
     sourceUser: User!
+    sourceUserId: Int!
     targetUser: User!
+    targetUserId: Int!
     post: Post
+    postId: Int
     comment: Comment
+    commentId: Int
   }
 
   type Room {
@@ -98,7 +106,9 @@ const typeDefs = `
     text: String!
     imageUrl: String
     user: User!
+    userId: Int!
     room: Room!
+    roomId: Int
   }
 
   type LoginResponse {
@@ -116,16 +126,16 @@ const typeDefs = `
     getMutuals(userId: ID!, cursor: ID): [User]
     getFfs(userId: ID!, cursor: ID): [User]
 
-    # getIndexPosts(postId: ID, repostId: ID): [Post]
+    # getIndexPosts(postCursor: ID, repostCursor: ID): [Post]
     # refreshIndexPosts(timestamp: String!): [Post]
 
-    searchPosts(query: String!, postId: ID): [Post]
+    searchPosts(query: String!, cursor: ID): [Post]
     getPost(postId: ID!): Post
 
-    # getUserPosts(userId: ID!, postId: ID, repostId: ID): [Post]
-    # getImagePosts(userId: ID!, postId: ID, repostId: ID): [Post]
-    # getLikedPosts(userId: ID!, postId: ID, repostId: ID): [Post]
+    # getUserPosts(userId: ID!, postCursor: ID, repostCursor: ID): [Post]
 
+    getImagePosts(userId: ID!, cursor: ID): [Post]
+    getLikedPosts(userId: ID!, cursor: ID): [Post]
     getComment(commentId: ID!): Comment
     getUserComments(userId: ID!, commentId: ID): [Comment]
     getPostComments(postId: ID!, commentId: ID): [Comment]
