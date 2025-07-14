@@ -27,25 +27,19 @@ const typeDefs = `
     text: String!
     feedItemType: String!
     imageUrl: String
-    poll: Poll
     user: User!
     userId: Int!
     likes: [User]
+    pollChoices: [Choice]
     comments: [Comment]
   }
 
-  type Poll {
+  type Choice {
     id: ID!
-    choices: [String]
-    voters: [Int]
-    choice1Votes: [Int]
-    choice2Votes: [Int]
-    choice3Votes: [Int]
-    choice4Votes: [Int]
-    choice5Votes: [Int]
-    choice6Votes: [Int]
+    text: String!
     post: Post!
     postId: Int!
+    votes: [User]
   }
 
   type Comment {
@@ -64,6 +58,7 @@ const typeDefs = `
     replies: [Comment]
     reposts: [Repost]
     notifications: [Notification]
+    commentChain: [Comment]
   }
 
   type Repost {
@@ -136,8 +131,10 @@ const typeDefs = `
 
     getImagePosts(userId: ID!, cursor: ID): [Post]
     getLikedPosts(userId: ID!, cursor: ID): [Post]
+    
     getComment(commentId: ID!): Comment
-    getUserComments(userId: ID!, commentId: ID): [Comment]
+    
+    getUserComments(userId: ID!, cursor: ID): [Comment]
     getPostComments(postId: ID!, commentId: ID): [Comment]
     getReplies(commentId: ID!, replyId: ID): [Comment]
     getAllRooms(roomId: ID): [Room]
@@ -157,7 +154,7 @@ const typeDefs = `
     follow(userId: ID!): User
     unfollow(userId: ID!): User
 
-    # createPost(text: String, gifUrl: String): Post
+    createPost(text: String, gifUrl: String, pollChoices: [String!]): Post
 
     deletePost(postId: ID!): Post
 
@@ -165,6 +162,7 @@ const typeDefs = `
     
     likePost(postId: ID!): Post
     unlikePost(postId: ID!): Post
+    voteInPoll(choiceId: ID!): Post
 
     # createRootComment(postId: ID!, text: String, gifUrl: String): Comment
     # createReply(commentId: ID!, text: String, gifUrl: String): Comment
@@ -175,8 +173,7 @@ const typeDefs = `
     
     likeComment(commentId: ID!): Comment
     unlikeComment(commentId: ID!): Comment
-    createPoll(question: String!, choices: [String!]): Post
-    voteInPoll(pollId: ID!, choice: Int!): Poll
+
     repost(id: ID!, contentType: String): Repost
     unrepost(id: ID!): Repost
     findOrCreateRoom(userId: ID!): Room

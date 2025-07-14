@@ -70,7 +70,44 @@ const postQueries = {
 
 const postMutations = {
   // createPost: authenticate(
-  //   async (parent, { text, gifUrl }, { currentUser }) => {}
+  //   async (parent, { text, gifUrl, pollChoices }, { currentUser }) => {
+  //     if (!text) {
+  //       throw new GraphQLError('Text cannot be empty', {
+  //         extensions: { code: 'BAD_USER_INPUT' },
+  //       });
+  //     }
+
+  //     if (pollChoices.length > 0) {
+  //       if (pollChoices.some((choice) => choice === '')) {
+  //         throw new GraphQLError('Choice cannot be empty', {
+  //           extensions: { code: 'BAD_USER_INPUT' },
+  //         });
+  //       }
+
+  //       if (pollChoices.length < 2 || pollChoices.length > 6) {
+  //         throw new GraphQLError('Poll must have 2-6 choices', {
+  //           extensions: { code: 'BAD_USER_INPUT' },
+  //         });
+  //       }
+  //     }
+
+  //     if (gifUrl) console.log(gifUrl);
+
+  //     const post = await prisma.post.create({
+  //       include: postInclusions,
+
+  //       data: {
+  //         text,
+  //         user: { connect: { id: currentUser.id } },
+
+  //         pollChoices: {
+  //           create: pollChoices.map((choice) => ({ text: choice })),
+  //         },
+  //       },
+  //     });
+
+  //     return post;
+  //   }
   // ),
 
   deletePost: authenticate(async (parent, { postId }, { currentUser }) => {
@@ -146,6 +183,33 @@ const postMutations = {
     });
 
     return updatedPost;
+  }),
+
+  voteInPoll: authenticate(async (parent, { choiceId }, { currentUser }) => {
+    const choice = await prisma.choice.findUnique({
+      where: { id: Number(choiceId) },
+      include: { votes: true },
+    });
+
+    if (!choice) {
+      throw new GraphQLError('Choice not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (choice.votes.some((vote) => vote.id === currentUser.id)) {
+      throw new GraphQLError('You have already voted in this poll', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    const updatedChoice = await prisma.choice.update({
+      where: { id: choice.id },
+      include: { post: { include: postInclusions } },
+      data: { votes: { connect: { id: currentUser.id } } },
+    });
+
+    return updatedChoice.post;
   }),
 };
 

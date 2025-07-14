@@ -24,6 +24,7 @@ model User {
   following              User[]         @relation("followers")
   posts                  Post[]         @relation("postAuthor")
   likedPosts             Post[]         @relation("likedPosts")
+  votes                  Choice[]
   comments               Comment[]      @relation("commentAuthor")
   likedComments          Comment[]      @relation("likedComments")
   reposts                Repost[]
@@ -39,27 +40,21 @@ model Post {
   text          String
   feedItemType  String         @default("post")
   imageUrl      String?
-  poll          Poll?
   user          User           @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
   userId        Int
   likes         User[]         @relation("likedPosts")
+  pollChoices   Choice[]
   comments      Comment[]
   reposts       Repost[]
   notifications Notification[]
 }
 
-model Poll {
-  id           Int      @id @default(autoincrement())
-  choices      String[]
-  voters       Int[]
-  choice1Votes Int[]
-  choice2Votes Int[]
-  choice3Votes Int[]
-  choice4Votes Int[]
-  choice5Votes Int[]
-  choice6Votes Int[]
-  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId       Int      @unique
+model Choice {
+  id     Int    @id @default(autoincrement())
+  text   String
+  post   Post   @relation(fields: [postId], references: [id])
+  postId Int
+  votes  User[]
 }
 
 model Comment {
