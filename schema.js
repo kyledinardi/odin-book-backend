@@ -137,11 +137,11 @@ const typeDefs = `
     getUserComments(userId: ID!, cursor: ID): [Comment]
     getPostComments(postId: ID!, commentId: ID): [Comment]
     getReplies(commentId: ID!, replyId: ID): [Comment]
-    getAllRooms(roomId: ID): [Room]
+    getAllRooms(cursor: ID): [Room]
     getRoom(roomId: ID!): Room
-    getMessages(roomId: ID!, messageId: ID): [Message]
-    getNotifications: [Notification]
-    refreshNotifications: [Notification]
+    getMessages(roomId: ID!, cursor: ID): [Message]
+    getNotifications(cursor: ID): [Notification]
+    refreshNotifications(timestamp: String!): [Notification]
   }
 
   type Mutation {
@@ -154,7 +154,7 @@ const typeDefs = `
     follow(userId: ID!): User
     unfollow(userId: ID!): User
 
-    createPost(text: String, gifUrl: String, pollChoices: [String!]): Post
+    #createPost(text: String, gifUrl: String, pollChoices: [String!]): Post
 
     deletePost(postId: ID!): Post
 
@@ -174,15 +174,14 @@ const typeDefs = `
     likeComment(commentId: ID!): Comment
     unlikeComment(commentId: ID!): Comment
 
-    repost(id: ID!, contentType: String): Repost
+    repost(id: ID!, contentType: String!): Repost
     unrepost(id: ID!): Repost
     findOrCreateRoom(userId: ID!): Room
 
     # createMessage(roomId: ID!, text: String, gifUrl: String): Message
 
     deleteMessage(messageId: ID!): Message
-
-    # updateMessage(messageId: ID!, text: String): Message
+    updateMessage(messageId: ID!, text: String!): Message
     }
 `;
 

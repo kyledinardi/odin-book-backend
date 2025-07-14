@@ -5,8 +5,8 @@ const jwt = require('jsonwebtoken');
 const { createHash } = require('node:crypto');
 const authenticate = require('../utils/authenticate');
 const { JWT_SECRET } = require('../utils/config');
-const getPaginationOptions = require('../utils/paginationOptions');
 const { userInclusions } = require('../utils/inclusions');
+const getPaginationOptions = require('../utils/paginationOptions');
 
 const prisma = new PrismaClient();
 
@@ -114,7 +114,10 @@ const userQueries = {
 };
 
 const userMutations = {
-  localLogin: async (parent, { username, password }) => {
+  localLogin: async (parent, args) => {
+    const username = args.username.trim();
+    const password = args.password.trim();
+
     const user = await prisma.user.findUnique({
       where: { username },
       include: userInclusions,
@@ -137,10 +140,11 @@ const userMutations = {
     return { user, token };
   },
 
-  createUser: async (
-    parent,
-    { username, displayName, password, passwordConfirmation }
-  ) => {
+  createUser: async (parent, args) => {
+    const username = args.username.trim();
+    const displayName = args.displayName?.trim();
+    const password = args.password.trim();
+    const passwordConfirmation = args.passwordConfirmation.trim();
     const errors = [];
 
     if (!username) {
@@ -189,56 +193,54 @@ const userMutations = {
 
   // updateProfile: authenticate(async (parent, args, { currentUser }) => {}),
 
-  updatePassword: authenticate(
-    async (
-      parent,
-      { currentPassword, newPassword, newPasswordConfirmation },
-      { currentUser }
-    ) => {
-      const user = await prisma.user.findUnique({
-        where: { id: currentUser.id },
+  updatePassword: authenticate(async (parent, args, { currentUser }) => {
+    const currentPassword = args.currentPassword.trim();
+    const newPassword = args.newPassword.trim();
+    const newPasswordConfirmation = args.newPasswordConfirmation.trim();
+
+    const user = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+    });
+
+    if (user.username === 'Guest' || user.username === 'Guest2') {
+      throw new GraphQLError('Cannot change guest password', {
+        extensions: { code: 'FORBIDDEN' },
       });
-
-      if (user.username === 'Guest' || user.username === 'Guest2') {
-        throw new GraphQLError('Cannot change guest password', {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
-
-      const errors = [];
-
-      if (!currentPassword) {
-        errors.push('Current password must not be empty');
-      } else {
-        const match = await bcrypt.compare(currentPassword, user.passwordHash);
-
-        if (!match) {
-          errors.push('Incorrect current password');
-        }
-      }
-
-      if (!newPassword) {
-        errors.push('New Password must not be empty');
-      } else if (newPassword !== newPasswordConfirmation) {
-        errors.push('Passwords did not match');
-      }
-
-      if (errors.length > 0) {
-        throw new GraphQLError(errors.join(', '), {
-          extensions: { code: 'BAD_USER_INPUT' },
-        });
-      }
-
-      const newPasswordHash = await bcrypt.hash(newPassword, 10);
-
-      const updatedUser = await prisma.user.update({
-        where: { id: currentUser.id },
-        data: { passwordHash: newPasswordHash },
-      });
-
-      return updatedUser;
     }
-  ),
+
+    const errors = [];
+
+    if (!currentPassword) {
+      errors.push('Current password must not be empty');
+    } else {
+      const match = await bcrypt.compare(currentPassword, user.passwordHash);
+
+      if (!match) {
+        errors.push('Incorrect current password');
+      }
+    }
+
+    if (!newPassword) {
+      errors.push('New Password must not be empty');
+    } else if (newPassword !== newPasswordConfirmation) {
+      errors.push('Passwords did not match');
+    }
+
+    if (errors.length > 0) {
+      throw new GraphQLError(errors.join(', '), {
+        extensions: { code: 'BAD_USER_INPUT' },
+      });
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    const updatedUser = await prisma.user.update({
+      where: { id: currentUser.id },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    return updatedUser;
+  }),
 
   follow: authenticate(async (parent, { userId }, { currentUser }) => {
     const user = await prisma.user.update({

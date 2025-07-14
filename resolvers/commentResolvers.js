@@ -1,8 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
 const authenticate = require('../utils/authenticate');
-const getPaginationOptions = require('../utils/paginationOptions');
 const { commentInclusions } = require('../utils/inclusions');
+const getPaginationOptions = require('../utils/paginationOptions');
 
 const prisma = new PrismaClient();
 

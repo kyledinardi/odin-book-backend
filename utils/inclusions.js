@@ -42,4 +42,19 @@ const commentInclusions = {
   },
 };
 
-module.exports = { userInclusions, postInclusions, commentInclusions };
+const roomInclusions = {
+  users: true,
+
+  messages: {
+    orderBy: { timestamp: 'asc' },
+    take: 20,
+    include: { user: true },
+  },
+};
+
+module.exports = {
+  userInclusions,
+  postInclusions,
+  commentInclusions,
+  roomInclusions,
+};
