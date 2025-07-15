@@ -37,9 +37,15 @@ const commentInclusions = {
 
   replies: {
     orderBy: { timestamp: 'desc' },
-    take: 20,
     include: { user: true, likes: true, replies: true, reposts: true },
+    take: 20,
   },
+};
+
+const repostInclusions = {
+  user: true,
+  post: { include: postInclusions },
+  comment: { include: commentInclusions },
 };
 
 const roomInclusions = {
@@ -47,8 +53,8 @@ const roomInclusions = {
 
   messages: {
     orderBy: { timestamp: 'asc' },
-    take: 20,
     include: { user: true },
+    take: 20,
   },
 };
 
@@ -56,5 +62,6 @@ module.exports = {
   userInclusions,
   postInclusions,
   commentInclusions,
+  repostInclusions,
   roomInclusions,
 };

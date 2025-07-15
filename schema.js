@@ -111,6 +111,8 @@ const typeDefs = `
     token: String!
   }
 
+  union PostOrRepost = Post | Repost
+
   type Query {
     getListedUsers: [User]
     searchUsers(query: String!, userId: ID): [User]
@@ -120,20 +122,14 @@ const typeDefs = `
     getFollowers(userId: ID!, cursor: ID): [User]
     getMutuals(userId: ID!, cursor: ID): [User]
     getFfs(userId: ID!, cursor: ID): [User]
-
-    # getIndexPosts(postCursor: ID, repostCursor: ID): [Post]
-    # refreshIndexPosts(timestamp: String!): [Post]
-
+    getIndexPosts(postCursor: ID, repostCursor: ID): [PostOrRepost]
+    refreshIndexPosts(timestamp: String!): [PostOrRepost]
     searchPosts(query: String!, cursor: ID): [Post]
     getPost(postId: ID!): Post
-
-    # getUserPosts(userId: ID!, postCursor: ID, repostCursor: ID): [Post]
-
+    getUserPosts(userId: ID!, postCursor: ID, repostCursor: ID): [PostOrRepost]
     getImagePosts(userId: ID!, cursor: ID): [Post]
     getLikedPosts(userId: ID!, cursor: ID): [Post]
-    
     getComment(commentId: ID!): Comment
-    
     getUserComments(userId: ID!, cursor: ID): [Comment]
     getPostComments(postId: ID!, commentId: ID): [Comment]
     getReplies(commentId: ID!, replyId: ID): [Comment]

@@ -30,6 +30,20 @@ const resolvers = {
     ...roomMutations,
     ...messageMutations,
   },
+
+  PostOrRepost: {
+    __resolveType: (obj) => {
+      if (obj.feedItemType === 'post') {
+        return 'Post';
+      }
+
+      if (obj.feedItemType === 'repost') {
+        return 'Repost';
+      }
+
+      return null;
+    },
+  },
 };
 
 module.exports = resolvers;

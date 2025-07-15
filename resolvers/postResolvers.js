@@ -1,19 +1,74 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
 const authenticate = require('../utils/authenticate');
-const { postInclusions } = require('../utils/inclusions');
+const { postInclusions, repostInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
 
 const prisma = new PrismaClient();
 
 const postQueries = {
-  // getIndexPosts: authenticate(
-  //   async (parent, { postCursor, repostCursor }, { currentUser }) => {}
-  // ),
+  getIndexPosts: authenticate(
+    async (parent, { postCursor, repostCursor }, { currentUser }) => {
+      const user = await prisma.user.findUnique({
+        where: { id: currentUser.id },
+        include: { following: true },
+      });
 
-  // refreshIndexPosts: authenticate(
-  //   async (parent, { timestamp }, { currentUser }) => {}
-  // ),
+      const followIds = user.following.map((follow) => follow.id);
+
+      function getOptions(isRepost) {
+        return {
+          where: { OR: [{ userId: user.id }, { userId: { in: followIds } }] },
+          orderBy: { timestamp: 'desc' },
+          include: isRepost ? repostInclusions : postInclusions,
+          ...getPaginationOptions(isRepost ? repostCursor : postCursor),
+        };
+      }
+
+      const [posts, reposts] = await Promise.all([
+        prisma.post.findMany(getOptions(false)),
+        prisma.repost.findMany(getOptions(true)),
+      ]);
+
+      const feed = [...posts, ...reposts];
+      feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return feed.slice(0, 20);
+    }
+  ),
+
+  refreshIndexPosts: authenticate(
+    async (parent, { timestamp }, { currentUser }) => {
+      const user = await prisma.user.findUnique({
+        where: { id: currentUser.id },
+        include: { following: true },
+      });
+
+      const followIds = user.following.map((follow) => follow.id);
+      const newestTimestamp = new Date(timestamp);
+
+      function getOptions(isRepost) {
+        return {
+          where: {
+            OR: [{ userId: user.id }, { userId: { in: followIds } }],
+            timestamp: { gt: newestTimestamp },
+          },
+
+          orderBy: { timestamp: 'desc' },
+          include: isRepost ? repostInclusions : postInclusions,
+          take: 20,
+        };
+      }
+
+      const [posts, reposts] = await Promise.all([
+        prisma.post.findMany(getOptions(false)),
+        prisma.repost.findMany(getOptions(true)),
+      ]);
+
+      const feed = [...posts, ...reposts];
+      feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return feed.slice(0, 20);
+    }
+  ),
 
   searchPosts: authenticate(async (parent, { query, cursor }) => {
     const posts = await prisma.post.findMany({
@@ -41,9 +96,37 @@ const postQueries = {
     return post;
   }),
 
-  // getUserPosts: authenticate(
-  //   async (parent, { userId, postCursor, repostCursor }) => {}
-  // ),
+  getUserPosts: authenticate(
+    async (parent, { userId, postCursor, repostCursor }) => {
+      const user = await prisma.user.findUnique({
+        where: { id: Number(userId) },
+      });
+
+      if (!user) {
+        throw new GraphQLError('User not found', {
+          extensions: { code: 'NOT_FOUND' },
+        });
+      }
+
+      function getOptions(isRepost) {
+        return {
+          where: { userId: user.id },
+          orderBy: { timestamp: 'desc' },
+          include: isRepost ? repostInclusions : postInclusions,
+          ...getPaginationOptions(isRepost ? repostCursor : postCursor),
+        };
+      }
+
+      const [posts, reposts] = await Promise.all([
+        prisma.post.findMany(getOptions(false)),
+        prisma.repost.findMany(getOptions(true)),
+      ]);
+
+      const feed = [...posts, ...reposts];
+      feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return feed.slice(0, 20);
+    }
+  ),
 
   getImagePosts: authenticate(async (parent, { userId, cursor }) => {
     const posts = await prisma.post.findMany({
