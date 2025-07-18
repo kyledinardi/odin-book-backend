@@ -1,10 +1,8 @@
 /* eslint-disable no-console */
 const express = require('express');
 const http = require('http');
-const { WebSocketServer } = require('ws');
 const { makeExecutableSchema } = require('@graphql-tools/schema');
 // eslint-disable-next-line import/no-unresolved
-const { useServer } = require('graphql-ws/use/ws');
 const { ApolloServer } = require('@apollo/server');
 const {
   default: graphqlUploadExpress,
@@ -27,28 +25,12 @@ const { setupSocketIo } = require('./utils/socketIo');
 async function startServer() {
   const app = express();
   const httpServer = http.createServer(app);
-  const wsServer = new WebSocketServer({ server: httpServer, path: '/' });
   const schema = makeExecutableSchema({ typeDefs, resolvers });
-  const serverCleanup = useServer({ schema }, wsServer);
-
-  const serverLifecycleHooks = {
-    async serverWillStart() {
-      return {
-        async drainServer() {
-          await serverCleanup.dispose();
-        },
-      };
-    },
-  };
 
   const server = new ApolloServer({
     schema,
     csrfPrevention: true,
-
-    plugins: [
-      ApolloServerPluginDrainHttpServer({ httpServer }),
-      serverLifecycleHooks,
-    ],
+    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
   });
 
   await server.start();
