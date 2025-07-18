@@ -1,3 +1,4 @@
+const { default: GraphQLUpload } = require('graphql-upload/GraphQLUpload.mjs');
 const { userQueries, userMutations } = require('./resolvers/userResolvers');
 const { postQueries, postMutations } = require('./resolvers/postResolvers');
 const {
@@ -13,6 +14,22 @@ const {
 const { notificationQueries } = require('./resolvers/notificationResolvers');
 
 const resolvers = {
+  Upload: GraphQLUpload,
+
+  PostOrRepost: {
+    __resolveType: (obj) => {
+      if (obj.feedItemType === 'post') {
+        return 'Post';
+      }
+
+      if (obj.feedItemType === 'repost') {
+        return 'Repost';
+      }
+
+      return null;
+    },
+  },
+
   Query: {
     ...userQueries,
     ...postQueries,
@@ -29,20 +46,6 @@ const resolvers = {
     ...repostMutations,
     ...roomMutations,
     ...messageMutations,
-  },
-
-  PostOrRepost: {
-    __resolveType: (obj) => {
-      if (obj.feedItemType === 'post') {
-        return 'Post';
-      }
-
-      if (obj.feedItemType === 'repost') {
-        return 'Repost';
-      }
-
-      return null;
-    },
   },
 };
 

@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
+const cloudinary = require('cloudinary').v2;
 const authenticate = require('../utils/authenticate');
 const { commentInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
@@ -72,13 +73,92 @@ const commentQueries = {
 };
 
 const commentMutations = {
-  // createRootComment: authenticate(
-  //   async (parent, { postId, text, gifUrl }, { currentUser }) => {}
-  // ),
+  createRootComment: authenticate(async (parent, args, { currentUser }) => {
+    const text = args.text?.trim();
+    let imageUrl = args.gifUrl?.trim();
 
-  // createReply: authenticate(
-  //   async (parent, { commentId, text, gifUrl }, { currentUser }) => {}
-  // ),
+    const post = await prisma.post.findUnique({
+      where: { id: Number(args.postId) },
+    });
+
+    if (!post) {
+      throw new GraphQLError('Post not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (args.image) {
+      const image = await args.image;
+      const result = await cloudinary.uploader.upload(image.path);
+      imageUrl = result.secure_url;
+    }
+
+    const comment = await prisma.comment.create({
+      data: {
+        text,
+        imageUrl,
+        user: { connect: { id: currentUser.id } },
+        post: { connect: { id: post.id } },
+      },
+
+      include: commentInclusions,
+    });
+
+    await prisma.notification.create({
+      data: {
+        type: 'comment',
+        sourceUser: { connect: { id: currentUser.id } },
+        targetUser: { connect: { id: post.userId } },
+        comment: { connect: { id: comment.id } },
+      },
+    });
+
+    return comment;
+  }),
+
+  createReply: authenticate(async (parent, args, { currentUser }) => {
+    const text = args.text?.trim();
+    let imageUrl = args.gifUrl?.trim();
+
+    const parentComment = await prisma.comment.findUnique({
+      where: { id: Number(args.parentId) },
+    });
+
+    if (!parentComment) {
+      throw new GraphQLError('Parent comment not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (args.image) {
+      const image = await args.image;
+      const result = await cloudinary.uploader.upload(image.path);
+      imageUrl = result.secure_url;
+    }
+
+    const comment = await prisma.comment.create({
+      data: {
+        text,
+        imageUrl,
+        user: { connect: { id: currentUser.id } },
+        post: { connect: { id: parentComment.postId } },
+        parent: { connect: { id: parentComment.id } },
+      },
+
+      include: commentInclusions,
+    });
+
+    await prisma.notification.create({
+      data: {
+        type: 'comment',
+        sourceUser: { connect: { id: currentUser.id } },
+        targetUser: { connect: { id: parentComment.userId } },
+        comment: { connect: { id: comment.id } },
+      },
+    });
+
+    return comment;
+  }),
 
   deleteComment: authenticate(
     async (parent, { commentId }, { currentUser }) => {
@@ -104,9 +184,40 @@ const commentMutations = {
     }
   ),
 
-  // updateComment: authenticate(
-  //   async (parent, { commentId, text, gifUrl }, { currentUser }) => {}
-  // ),
+  updateComment: authenticate(async (parent, args, { currentUser }) => {
+    const text = args.text?.trim();
+    let imageUrl = args.gifUrl?.trim();
+
+    const comment = await prisma.comment.findUnique({
+      where: { id: Number(args.commentId) },
+    });
+
+    if (!comment) {
+      throw new GraphQLError('Comment not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (comment.userId !== currentUser.id) {
+      throw new GraphQLError('You cannot edit this comment', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    if (args.image) {
+      const image = await args.image;
+      const result = await cloudinary.uploader.upload(image.path);
+      imageUrl = result.secure_url;
+    }
+
+    const updatedComment = await prisma.comment.update({
+      where: { id: comment.id },
+      data: { text, imageUrl },
+      include: commentInclusions,
+    });
+
+    return updatedComment;
+  }),
 
   likeComment: authenticate(async (parent, { commentId }, { currentUser }) => {
     const comment = await prisma.comment.findUnique({

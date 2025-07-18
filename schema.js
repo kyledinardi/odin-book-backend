@@ -1,4 +1,12 @@
 const typeDefs = `
+  scalar Upload
+
+  type File {
+    filename: String!
+    mimetype: String!
+    encoding: String!
+  }
+
   type UserCounts {
     followers: Int!
     following: Int!
@@ -143,39 +151,26 @@ const typeDefs = `
   type Mutation {
     localLogin(username: String!, password: String!): LoginResponse
     createUser(username: String!, displayName: String, password: String!, passwordConfirmation: String!): User
-    
-    # updateProfile(displayName: String, bio: String, location: String, website: String): User
-
+    updateProfile(pfp: Upload, headerImage: Upload, displayName: String, bio: String, location: String, website: String): User
     updatePassword(currentPassword: String!, newPassword: String!, newPasswordConfirmation: String!): User
     follow(userId: ID!): User
     unfollow(userId: ID!): User
-
-    #createPost(text: String, gifUrl: String, pollChoices: [String!]): Post
-
+    createPost(text: String, gifUrl: String, pollChoices: [String!], image: Upload): Post
     deletePost(postId: ID!): Post
-
-    # updatePost(postId: ID!, text: String, gifUrl: String): Post
-    
+    updatePost(postId: ID!, text: String, gifUrl: String, image: Upload): Post
     likePost(postId: ID!): Post
     unlikePost(postId: ID!): Post
     voteInPoll(choiceId: ID!): Post
-
-    # createRootComment(postId: ID!, text: String, gifUrl: String): Comment
-    # createReply(commentId: ID!, text: String, gifUrl: String): Comment
-
+    createRootComment(postId: ID!, text: String, gifUrl: String, image: Upload): Comment
+    createReply(commentId: ID!, text: String, gifUrl: String, image: Upload): Comment
     deleteComment(commentId: ID!): Comment
-
-    # updateComment(commentId: ID!, text: String, gifUrl: String): Comment
-    
+    updateComment(commentId: ID!, text: String, gifUrl: String): Comment
     likeComment(commentId: ID!): Comment
     unlikeComment(commentId: ID!): Comment
-
     repost(id: ID!, contentType: String!): Repost
     unrepost(id: ID!): Repost
     findOrCreateRoom(userId: ID!): Room
-
-    # createMessage(roomId: ID!, text: String, gifUrl: String): Message
-
+    createMessage(roomId: ID!, text: String, gifUrl: String): Message
     deleteMessage(messageId: ID!): Message
     updateMessage(messageId: ID!, text: String!): Message
     }

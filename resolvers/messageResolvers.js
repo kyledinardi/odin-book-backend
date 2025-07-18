@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
+const cloudinary = require('cloudinary').v2;
 const authenticate = require('../utils/authenticate');
 const getPaginationOptions = require('../utils/paginationOptions');
 
@@ -19,9 +20,34 @@ const messageQueries = {
 };
 
 const messageMutations = {
-  // createMessage: authenticate(
-  //   async (parent, { roomId, text, gifUrl }, { currentUser }) => {}
-  // ),
+  createMessage: authenticate(async (parent, args, { currentUser }) => {
+    const text = args.text?.trim();
+    let imageUrl = args.gifUrl?.trim();
+
+    if (args.image) {
+      const image = await args.image;
+      const result = await cloudinary.uploader.upload(image.path);
+      imageUrl = result.secure_url;
+    }
+
+    const message = await prisma.message.create({
+      data: {
+        text,
+        imageUrl,
+        user: { connect: { id: currentUser.id } },
+        room: { connect: { id: Number(args.roomId) } },
+      },
+
+      include: { user: true },
+    });
+
+    await prisma.room.update({
+      where: { id: Number(args.roomId) },
+      data: { lastMessage: { connect: { id: message.id } } },
+    });
+
+    return message;
+  }),
 
   deleteMessage: authenticate(
     async (parent, { messageId }, { currentUser }) => {
@@ -47,41 +73,33 @@ const messageMutations = {
     }
   ),
 
-  updateMessage: authenticate(
-    async (parent, args, { currentUser }) => {
-      const text = args.text.trim();
+  updateMessage: authenticate(async (parent, args, { currentUser }) => {
+    const text = args.text?.trim();
 
-      if (!text) {
-        throw new GraphQLError('Message cannot be empty', {
-          extensions: { code: 'BAD_REQUEST' },
-        });
-      }
+    const message = await prisma.message.findUnique({
+      where: { id: Number(args.messageId) },
+    });
 
-      const message = await prisma.message.findUnique({
-        where: { id: Number(args.messageId) },
+    if (!message) {
+      throw new GraphQLError('Message not found', {
+        extensions: { code: 'NOT_FOUND' },
       });
-
-      if (!message) {
-        throw new GraphQLError('Message not found', {
-          extensions: { code: 'NOT_FOUND' },
-        });
-      }
-
-      if (message.userId !== currentUser.id) {
-        throw new GraphQLError('You cannot update this message', {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
-
-      const updatedMessage = await prisma.message.update({
-        where: { id: message.id },
-        data: { text },
-        include: { user: true },
-      });
-
-      return updatedMessage;
     }
-  ),
+
+    if (message.userId !== currentUser.id) {
+      throw new GraphQLError('You cannot update this message', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    const updatedMessage = await prisma.message.update({
+      where: { id: message.id },
+      data: { text },
+      include: { user: true },
+    });
+
+    return updatedMessage;
+  }),
 };
 
 module.exports = { messageQueries, messageMutations };

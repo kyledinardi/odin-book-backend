@@ -3,6 +3,7 @@ const { GraphQLError } = require('graphql');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createHash } = require('node:crypto');
+const cloudinary = require('cloudinary').v2;
 const authenticate = require('../utils/authenticate');
 const { JWT_SECRET } = require('../utils/config');
 const { userInclusions } = require('../utils/inclusions');
@@ -191,7 +192,49 @@ const userMutations = {
     return user;
   },
 
-  // updateProfile: authenticate(async (parent, args, { currentUser }) => {}),
+  updateProfile: authenticate(async (parent, args, { currentUser }) => {
+    if (currentUser.username === 'Guest' || currentUser.username === 'Guest2') {
+      throw new GraphQLError('Cannot change guest profile', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    const data = {
+      displayName: args.displayName?.trim(),
+      bio: args.bio?.trim(),
+      location: args.location?.trim(),
+      website: args.website?.trim(),
+    };
+
+    try {
+      // eslint-disable-next-line no-unused-vars
+      const isValidUrl = new URL(data.website);
+    } catch (err) {
+      throw new GraphQLError('Website must be a valid URL', {
+        extensions: { code: 'BAD_USER_INPUT' },
+      });
+    }
+
+    if (args.pfp) {
+      const pfp = await args.pfp;
+      const result = await cloudinary.uploader.upload(pfp.path);
+      data.pfpUrl = result.secure_url;
+    }
+
+    if (args.headerImage) {
+      const headerImage = await args.headerImage;
+      const result = await cloudinary.uploader.upload(headerImage.path);
+      data.headerImageUrl = result.secure_url;
+    }
+
+    const user = await prisma.user.update({
+      where: { id: currentUser.id },
+      include: userInclusions,
+      data,
+    });
+
+    return user;
+  }),
 
   updatePassword: authenticate(async (parent, args, { currentUser }) => {
     const currentPassword = args.currentPassword.trim();

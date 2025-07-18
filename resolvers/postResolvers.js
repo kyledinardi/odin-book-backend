@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
+const cloudinary = require('cloudinary').v2;
 const authenticate = require('../utils/authenticate');
 const { postInclusions, repostInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
@@ -152,46 +153,47 @@ const postQueries = {
 };
 
 const postMutations = {
-  // createPost: authenticate(
-  //   async (parent, { text, gifUrl, pollChoices }, { currentUser }) => {
-  //     if (!text) {
-  //       throw new GraphQLError('Text cannot be empty', {
-  //         extensions: { code: 'BAD_USER_INPUT' },
-  //       });
-  //     }
+  createPost: authenticate(async (parent, args, { currentUser }) => {
+    const text = args.text?.trim();
+    const pollChoices = args.pollChoices.map((choice) => choice.trim());
+    let imageUrl = args.gifUrl?.trim();
 
-  //     if (pollChoices.length > 0) {
-  //       if (pollChoices.some((choice) => choice === '')) {
-  //         throw new GraphQLError('Choice cannot be empty', {
-  //           extensions: { code: 'BAD_USER_INPUT' },
-  //         });
-  //       }
+    if (pollChoices.length > 0) {
+      if (pollChoices.some((choice) => choice === '')) {
+        throw new GraphQLError('Choice cannot be empty', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
 
-  //       if (pollChoices.length < 2 || pollChoices.length > 6) {
-  //         throw new GraphQLError('Poll must have 2-6 choices', {
-  //           extensions: { code: 'BAD_USER_INPUT' },
-  //         });
-  //       }
-  //     }
+      if (pollChoices.length < 2 || pollChoices.length > 6) {
+        throw new GraphQLError('Poll must have 2-6 choices', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
+    }
 
-  //     if (gifUrl) console.log(gifUrl);
+    if (args.image) {
+      const image = await args.image;
+      const result = await cloudinary.uploader.upload(image.path);
+      imageUrl = result.secure_url;
+    }
 
-  //     const post = await prisma.post.create({
-  //       include: postInclusions,
+    const post = await prisma.post.create({
+      include: postInclusions,
 
-  //       data: {
-  //         text,
-  //         user: { connect: { id: currentUser.id } },
+      data: {
+        text,
+        imageUrl,
+        user: { connect: { id: currentUser.id } },
 
-  //         pollChoices: {
-  //           create: pollChoices.map((choice) => ({ text: choice })),
-  //         },
-  //       },
-  //     });
+        pollChoices: {
+          create: pollChoices.map((choice) => ({ text: choice })),
+        },
+      },
+    });
 
-  //     return post;
-  //   }
-  // ),
+    return post;
+  }),
 
   deletePost: authenticate(async (parent, { postId }, { currentUser }) => {
     const post = await prisma.post.findUnique({
@@ -215,9 +217,40 @@ const postMutations = {
     return post;
   }),
 
-  // updatePost: authenticate(
-  //   async (parent, { postId, text, gifUrl }, { currentUser }) => {}
-  // ),
+  updatePost: authenticate(async (parent, args, { currentUser }) => {
+    const text = args.text?.trim();
+    let imageUrl = args.gifUrl?.trim();
+
+    const post = await prisma.post.findUnique({
+      where: { id: Number(args.postId) },
+    });
+
+    if (!post) {
+      throw new GraphQLError('Post not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (post.userId !== currentUser.id) {
+      throw new GraphQLError('You cannot update this post', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    if (args.image) {
+      const image = await args.image;
+      const result = await cloudinary.uploader.upload(image.path);
+      imageUrl = result.secure_url;
+    }
+
+    const updatedPost = await prisma.post.update({
+      where: { id: post.id },
+      data: { text, imageUrl },
+      include: postInclusions,
+    });
+
+    return updatedPost;
+  }),
 
   likePost: authenticate(async (parent, { postId }, { currentUser }) => {
     const post = await prisma.post.findUnique({

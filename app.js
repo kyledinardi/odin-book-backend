@@ -6,6 +6,9 @@ const { makeExecutableSchema } = require('@graphql-tools/schema');
 // eslint-disable-next-line import/no-unresolved
 const { useServer } = require('graphql-ws/use/ws');
 const { ApolloServer } = require('@apollo/server');
+const {
+  default: graphqlUploadExpress,
+} = require('graphql-upload/graphqlUploadExpress.mjs');
 const { expressMiddleware } = require('@apollo/server/express4');
 const {
   ApolloServerPluginDrainHttpServer,
@@ -28,20 +31,23 @@ async function startServer() {
   const schema = makeExecutableSchema({ typeDefs, resolvers });
   const serverCleanup = useServer({ schema }, wsServer);
 
+  const serverLifecycleHooks = {
+    async serverWillStart() {
+      return {
+        async drainServer() {
+          await serverCleanup.dispose();
+        },
+      };
+    },
+  };
+
   const server = new ApolloServer({
     schema,
+    csrfPrevention: true,
+
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
-
-      {
-        async serverWillStart() {
-          return {
-            async drainServer() {
-              await serverCleanup.dispose();
-            },
-          };
-        },
-      },
+      serverLifecycleHooks,
     ],
   });
 
@@ -60,6 +66,7 @@ async function startServer() {
     compression(),
     express.json(),
     express.urlencoded({ extended: false }),
+    graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 10 }),
 
     expressMiddleware(server, {
       context: async ({ req }) => {
