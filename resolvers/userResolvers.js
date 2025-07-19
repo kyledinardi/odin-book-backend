@@ -121,7 +121,6 @@ const userMutations = {
 
     const user = await prisma.user.findUnique({
       where: { username },
-      include: userInclusions,
     });
 
     const match = await bcrypt.compare(password, user.passwordHash);

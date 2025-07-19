@@ -20,7 +20,9 @@ const typeDefs = `
     displayName: String!
     pfpUrl: String!
     joinDate: String!
+    headerUrl: String
     bio: String
+    location: String
     website: String
     passwordHash: String
     provider: String
