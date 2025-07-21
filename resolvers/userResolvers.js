@@ -27,7 +27,14 @@ const userQueries = {
     return users;
   }),
 
-  getCurrentUser: authenticate((parent, args, { currentUser }) => currentUser),
+  getCurrentUser: authenticate((parent, args, { currentUser }) => {
+    const currentUserWithInclusions = prisma.user.findUnique({
+      where: { id: currentUser.id },
+      include: userInclusions,
+    });
+
+    return currentUserWithInclusions;
+  }),
 
   searchUsers: authenticate(async (parent, { query, userId }) => {
     const users = await prisma.user.findMany({
