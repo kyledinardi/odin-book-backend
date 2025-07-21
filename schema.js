@@ -42,6 +42,7 @@ const typeDefs = `
     likes: [User]
     pollChoices: [Choice]
     comments: [Comment]
+    reposts: [Repost]
   }
 
   type Choice {
@@ -132,8 +133,7 @@ const typeDefs = `
     getFollowers(userId: ID!, cursor: ID): [User]
     getMutuals(userId: ID!, cursor: ID): [User]
     getFfs(userId: ID!, cursor: ID): [User]
-    getIndexPosts(postCursor: ID, repostCursor: ID): [PostOrRepost]
-    refreshIndexPosts(timestamp: String!): [PostOrRepost]
+    getIndexPosts(postCursor: ID, repostCursor: ID, timestamp: String): [PostOrRepost]
     searchPosts(query: String!, cursor: ID): [Post]
     getPost(postId: ID!): Post
     getUserPosts(userId: ID!, postCursor: ID, repostCursor: ID): [PostOrRepost]

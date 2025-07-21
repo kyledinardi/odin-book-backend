@@ -9,7 +9,11 @@ const prisma = new PrismaClient();
 
 const postQueries = {
   getIndexPosts: authenticate(
-    async (parent, { postCursor, repostCursor }, { currentUser }) => {
+    async (
+      parent,
+      { postCursor, repostCursor, timestamp },
+      { currentUser }
+    ) => {
       const user = await prisma.user.findUnique({
         where: { id: currentUser.id },
         include: { following: true },
@@ -18,12 +22,23 @@ const postQueries = {
       const followIds = user.following.map((follow) => follow.id);
 
       function getOptions(isRepost) {
-        return {
-          where: { OR: [{ userId: user.id }, { userId: { in: followIds } }] },
+        let options = {
+          where: { userId: { in: [...followIds, user.id] } },
           orderBy: { timestamp: 'desc' },
           include: isRepost ? repostInclusions : postInclusions,
-          ...getPaginationOptions(isRepost ? repostCursor : postCursor),
         };
+
+        if (timestamp) {
+          options.where.timestamp = { gt: new Date(Number(timestamp)) };
+          options.take = 20;
+        } else {
+          options = {
+            ...options,
+            ...getPaginationOptions(isRepost ? repostCursor : postCursor),
+          };
+        }
+
+        return options;
       }
 
       const [posts, reposts] = await Promise.all([
@@ -33,40 +48,7 @@ const postQueries = {
 
       const feed = [...posts, ...reposts];
       feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      return feed.slice(0, 20);
-    }
-  ),
 
-  refreshIndexPosts: authenticate(
-    async (parent, { timestamp }, { currentUser }) => {
-      const user = await prisma.user.findUnique({
-        where: { id: currentUser.id },
-        include: { following: true },
-      });
-
-      const followIds = user.following.map((follow) => follow.id);
-      const newestTimestamp = new Date(timestamp);
-
-      function getOptions(isRepost) {
-        return {
-          where: {
-            OR: [{ userId: user.id }, { userId: { in: followIds } }],
-            timestamp: { gt: newestTimestamp },
-          },
-
-          orderBy: { timestamp: 'desc' },
-          include: isRepost ? repostInclusions : postInclusions,
-          take: 20,
-        };
-      }
-
-      const [posts, reposts] = await Promise.all([
-        prisma.post.findMany(getOptions(false)),
-        prisma.repost.findMany(getOptions(true)),
-      ]);
-
-      const feed = [...posts, ...reposts];
-      feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       return feed.slice(0, 20);
     }
   ),
@@ -155,10 +137,10 @@ const postQueries = {
 const postMutations = {
   createPost: authenticate(async (parent, args, { currentUser }) => {
     const text = args.text?.trim();
-    const pollChoices = args.pollChoices.map((choice) => choice.trim());
+    const pollChoices = args.pollChoices?.map((choice) => choice.trim());
     let imageUrl = args.gifUrl?.trim();
 
-    if (pollChoices.length > 0) {
+    if (pollChoices) {
       if (pollChoices.some((choice) => choice === '')) {
         throw new GraphQLError('Choice cannot be empty', {
           extensions: { code: 'BAD_USER_INPUT' },
@@ -186,7 +168,7 @@ const postMutations = {
         imageUrl,
         user: { connect: { id: currentUser.id } },
 
-        pollChoices: {
+        pollChoices: pollChoices && {
           create: pollChoices.map((choice) => ({ text: choice })),
         },
       },
