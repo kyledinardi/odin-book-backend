@@ -11,6 +11,12 @@ const getPaginationOptions = require('../utils/paginationOptions');
 
 const prisma = new PrismaClient();
 
+const throwInputError = (message) => {
+  throw new GraphQLError(message, {
+    extensions: { code: 'BAD_USER_INPUT' },
+  });
+};
+
 const userQueries = {
   getListedUsers: authenticate(async (parent, args, { currentUser }) => {
     const users = await prisma.user.findMany({
@@ -133,9 +139,7 @@ const userMutations = {
     const match = await bcrypt.compare(password, user.passwordHash);
 
     if (!user || !match) {
-      throw new GraphQLError('Incorrect username or password', {
-        extensions: { code: 'BAD_USER_INPUT' },
-      });
+      throwInputError('Incorrect username or password');
     }
 
     const userForToken = {
@@ -152,30 +156,23 @@ const userMutations = {
     const displayName = args.displayName?.trim();
     const password = args.password.trim();
     const passwordConfirmation = args.passwordConfirmation.trim();
-    const errors = [];
 
     if (!username) {
-      errors.push('Username must not be empty');
+      throwInputError('Username must not be empty');
     } else {
       const usernameInDatabase = await prisma.user.findUnique({
         where: { username },
       });
 
       if (usernameInDatabase) {
-        errors.push('A user already exists with this username');
+        throwInputError('A user already exists with this username');
       }
     }
 
     if (!password) {
-      errors.push('Password must not be empty');
+      throwInputError('Password must not be empty');
     } else if (password !== passwordConfirmation) {
-      errors.push('Passwords did not match');
-    }
-
-    if (errors.length > 0) {
-      throw new GraphQLError(errors.join(', '), {
-        extensions: { code: 'BAD_USER_INPUT' },
-      });
+      throwInputError('Passwords did not match');
     }
 
     const usernameHash = createHash('sha256')
@@ -195,7 +192,13 @@ const userMutations = {
       },
     });
 
-    return user;
+    const userForToken = {
+      username: user.username,
+      id: user.id,
+    };
+
+    const token = jwt.sign(userForToken, JWT_SECRET);
+    return { user, token };
   },
 
   updateProfile: authenticate(async (parent, args, { currentUser }) => {
@@ -216,9 +219,7 @@ const userMutations = {
       // eslint-disable-next-line no-unused-vars
       const isValidUrl = new URL(data.website);
     } catch (err) {
-      throw new GraphQLError('Website must be a valid URL', {
-        extensions: { code: 'BAD_USER_INPUT' },
-      });
+      throwInputError('Website must be a valid URL');
     }
 
     if (args.pfp) {
@@ -257,28 +258,20 @@ const userMutations = {
       });
     }
 
-    const errors = [];
-
     if (!currentPassword) {
-      errors.push('Current password must not be empty');
+      throwInputError('Current password must not be empty');
     } else {
       const match = await bcrypt.compare(currentPassword, user.passwordHash);
 
       if (!match) {
-        errors.push('Incorrect current password');
+        throwInputError('Incorrect current password');
       }
     }
 
     if (!newPassword) {
-      errors.push('New Password must not be empty');
+      throwInputError('New Password must not be empty');
     } else if (newPassword !== newPasswordConfirmation) {
-      errors.push('Passwords did not match');
-    }
-
-    if (errors.length > 0) {
-      throw new GraphQLError(errors.join(', '), {
-        extensions: { code: 'BAD_USER_INPUT' },
-      });
+      throwInputError('Passwords did not match');
     }
 
     const newPasswordHash = await bcrypt.hash(newPassword, 10);

@@ -152,7 +152,7 @@ const typeDefs = `
 
   type Mutation {
     localLogin(username: String!, password: String!): LoginResponse
-    createUser(username: String!, displayName: String, password: String!, passwordConfirmation: String!): User
+    createUser(username: String!, displayName: String, password: String!, passwordConfirmation: String!): LoginResponse
     updateProfile(pfp: Upload, headerImage: Upload, displayName: String, bio: String, location: String, website: String): User
     updatePassword(currentPassword: String!, newPassword: String!, newPasswordConfirmation: String!): User
     follow(userId: ID!): User
