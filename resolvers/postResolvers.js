@@ -237,6 +237,7 @@ const postMutations = {
   likePost: authenticate(async (parent, { postId }, { currentUser }) => {
     const post = await prisma.post.findUnique({
       where: { id: Number(postId) },
+      include: { likes: true },
     });
 
     if (!post) {
@@ -245,40 +246,31 @@ const postMutations = {
       });
     }
 
+    let isLiked = false;
+
+    if (post.likes.some((like) => like.id === currentUser.id)) {
+      isLiked = true;
+    }
+
     const updatedPost = await prisma.post.update({
       where: { id: post.id },
-      data: { likes: { connect: { id: currentUser.id } } },
       include: postInclusions,
-    });
 
-    await prisma.notification.create({
       data: {
-        type: 'like',
-        sourceUser: { connect: { id: currentUser.id } },
-        targetUser: { connect: { id: post.userId } },
-        post: { connect: { id: post.id } },
+        likes: { [isLiked ? 'disconnect' : 'connect']: { id: currentUser.id } },
       },
     });
 
-    return updatedPost;
-  }),
-
-  unlikePost: authenticate(async (parent, { postId }, { currentUser }) => {
-    const post = await prisma.post.findUnique({
-      where: { id: Number(postId) },
-    });
-
-    if (!post) {
-      throw new GraphQLError('Post not found', {
-        extensions: { code: 'NOT_FOUND' },
+    if (!isLiked) {
+      await prisma.notification.create({
+        data: {
+          type: 'like',
+          sourceUser: { connect: { id: currentUser.id } },
+          targetUser: { connect: { id: post.userId } },
+          post: { connect: { id: post.id } },
+        },
       });
     }
-
-    const updatedPost = await prisma.post.update({
-      where: { id: post.id },
-      data: { likes: { disconnect: { id: currentUser.id } } },
-      include: postInclusions,
-    });
 
     return updatedPost;
   }),
@@ -308,6 +300,54 @@ const postMutations = {
     });
 
     return updatedChoice.post;
+  }),
+
+  repost: authenticate(async (parent, { contentType, id }, { currentUser }) => {
+    if (contentType !== 'post' && contentType !== 'comment') {
+      throw new GraphQLError('Invalid contentType', {
+        extensions: { code: 'BAD_USER_INPUT' },
+      });
+    }
+
+    const content = await prisma[contentType].findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!content) {
+      throw new GraphQLError(`${contentType} not found`, {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    const existingRepost = await prisma.repost.findFirst({
+      where: { userId: currentUser.id, [`${contentType}Id`]: content.id },
+      include: repostInclusions,
+    });
+
+    if (existingRepost) {
+      await prisma.repost.delete({ where: { id: existingRepost.id } });
+      return existingRepost;
+    }
+
+    const newRepost = await prisma.repost.create({
+      data: {
+        user: { connect: { id: currentUser.id } },
+        [contentType]: { connect: { id: content.id } },
+      },
+
+      include: repostInclusions,
+    });
+
+    await prisma.notification.create({
+      data: {
+        type: 'repost',
+        sourceUser: { connect: { id: currentUser.id } },
+        targetUser: { connect: { id: content.userId } },
+        [contentType]: { connect: { id: content.id } },
+      },
+    });
+
+    return newRepost;
   }),
 };
 

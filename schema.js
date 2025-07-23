@@ -133,16 +133,19 @@ const typeDefs = `
     getFollowers(userId: ID!, cursor: ID): [User]
     getMutuals(userId: ID!, cursor: ID): [User]
     getFfs(userId: ID!, cursor: ID): [User]
+
     getIndexPosts(postCursor: ID, repostCursor: ID, timestamp: String): [PostOrRepost]
     searchPosts(query: String!, cursor: ID): [Post]
     getPost(postId: ID!): Post
     getUserPosts(userId: ID!, postCursor: ID, repostCursor: ID): [PostOrRepost]
     getImagePosts(userId: ID!, cursor: ID): [Post]
     getLikedPosts(userId: ID!, cursor: ID): [Post]
+
     getComment(commentId: ID!): Comment
     getUserComments(userId: ID!, cursor: ID): [Comment]
     getPostComments(postId: ID!, commentId: ID): [Comment]
     getReplies(commentId: ID!, replyId: ID): [Comment]
+
     getAllRooms(cursor: ID): [Room]
     getRoom(roomId: ID!): Room
     getMessages(roomId: ID!, cursor: ID): [Message]
@@ -157,20 +160,21 @@ const typeDefs = `
     updatePassword(currentPassword: String!, newPassword: String!, newPasswordConfirmation: String!): User
     follow(userId: ID!): User
     unfollow(userId: ID!): User
+
     createPost(text: String, gifUrl: String, pollChoices: [String!], image: Upload): Post
     deletePost(postId: ID!): Post
     updatePost(postId: ID!, text: String, gifUrl: String, image: Upload): Post
     likePost(postId: ID!): Post
-    unlikePost(postId: ID!): Post
     voteInPoll(choiceId: ID!): Post
+    repost(id: ID!, contentType: String!): Repost
+
     createRootComment(postId: ID!, text: String, gifUrl: String, image: Upload): Comment
     createReply(commentId: ID!, text: String, gifUrl: String, image: Upload): Comment
     deleteComment(commentId: ID!): Comment
     updateComment(commentId: ID!, text: String, gifUrl: String): Comment
     likeComment(commentId: ID!): Comment
     unlikeComment(commentId: ID!): Comment
-    repost(id: ID!, contentType: String!): Repost
-    unrepost(id: ID!): Repost
+
     findOrCreateRoom(userId: ID!): Room
     createMessage(roomId: ID!, text: String, gifUrl: String): Message
     deleteMessage(messageId: ID!): Message
