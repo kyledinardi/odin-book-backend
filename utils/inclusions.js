@@ -15,7 +15,7 @@ const postInclusions = {
   user: true,
   likes: true,
   reposts: true,
-  pollChoices: true,
+  pollChoices: { include: { votes: true } },
 
   comments: {
     where: { parentId: null },

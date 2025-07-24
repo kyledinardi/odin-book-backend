@@ -278,7 +278,9 @@ const postMutations = {
   voteInPoll: authenticate(async (_, { choiceId }, { currentUser }) => {
     const choice = await prisma.choice.findUnique({
       where: { id: Number(choiceId) },
-      include: { votes: true },
+      include: {
+        post: { include: { pollChoices: { include: { votes: true } } } },
+      },
     });
 
     if (!choice) {
@@ -287,19 +289,21 @@ const postMutations = {
       });
     }
 
-    if (choice.votes.some((vote) => vote.id === currentUser.id)) {
-      throw new GraphQLError('You have already voted in this poll', {
-        extensions: { code: 'FORBIDDEN' },
-      });
-    }
+    choice.post.pollChoices.forEach((c) => {
+      if (c.votes.some((vote) => vote.id === currentUser.id)) {
+        throw new GraphQLError('You have already voted in this poll', {
+          extensions: { code: 'FORBIDDEN' },
+        });
+      }
+    });
 
     const updatedChoice = await prisma.choice.update({
       where: { id: choice.id },
-      include: { post: { include: postInclusions } },
+      include: { votes: true },
       data: { votes: { connect: { id: currentUser.id } } },
     });
 
-    return updatedChoice.post;
+    return updatedChoice;
   }),
 
   repost: authenticate(async (_, { contentType, id }, { currentUser }) => {

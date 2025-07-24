@@ -165,7 +165,8 @@ const typeDefs = `
     deletePost(postId: ID!): Post
     updatePost(postId: ID!, text: String, gifUrl: String, image: Upload): Post
     likePost(postId: ID!): Post
-    voteInPoll(choiceId: ID!): Post
+
+    voteInPoll(choiceId: ID!): Choice
     repost(id: ID!, contentType: String!): Repost
 
     createRootComment(postId: ID!, text: String, gifUrl: String, image: Upload): Comment

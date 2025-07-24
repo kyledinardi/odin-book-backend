@@ -52,7 +52,7 @@ model Post {
 model Choice {
   id     Int    @id @default(autoincrement())
   text   String
-  post   Post   @relation(fields: [postId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId Int
   votes  User[]
 }
@@ -96,9 +96,9 @@ model Notification {
   sourceUserId Int
   targetUser   User     @relation("notificationTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
   targetUserId Int
-  post         Post?    @relation(fields: [postId], references: [id])
+  post         Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId       Int?
-  comment      Comment? @relation(fields: [commentId], references: [id])
+  comment      Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
   commentId    Int?
 }
 
@@ -114,8 +114,8 @@ model Message {
   timestamp DateTime @default(now())
   text      String
   imageUrl  String?
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  room      Room     @relation(fields: [roomId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   roomId    Int
 }
