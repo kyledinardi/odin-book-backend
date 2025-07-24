@@ -1,14 +1,14 @@
 const { GraphQLError } = require('graphql');
 
 function authenticate(resolver) {
-  return async (parent, args, context) => {
+  return async (_, args, context) => {
     if (!context.currentUser) {
       throw new GraphQLError('Not authenticated', {
         extensions: { code: 'UNAUTHENTICATED' },
       });
     }
 
-    return resolver(parent, args, context);
+    return resolver(_, args, context);
   };
 }
 

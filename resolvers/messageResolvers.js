@@ -7,7 +7,7 @@ const getPaginationOptions = require('../utils/paginationOptions');
 const prisma = new PrismaClient();
 
 const messageQueries = {
-  getMessages: authenticate(async (parent, { roomId, cursor }) => {
+  getMessages: authenticate(async (_, { roomId, cursor }) => {
     const messages = await prisma.message.findMany({
       where: { room: { id: Number(roomId) } },
       orderBy: { timestamp: 'asc' },
@@ -20,7 +20,7 @@ const messageQueries = {
 };
 
 const messageMutations = {
-  createMessage: authenticate(async (parent, args, { currentUser }) => {
+  createMessage: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();
     let imageUrl = args.gifUrl?.trim();
 
@@ -50,7 +50,7 @@ const messageMutations = {
   }),
 
   deleteMessage: authenticate(
-    async (parent, { messageId }, { currentUser }) => {
+    async (_, { messageId }, { currentUser }) => {
       const message = await prisma.message.findUnique({
         where: { id: Number(messageId) },
         include: { user: true },
@@ -73,7 +73,7 @@ const messageMutations = {
     }
   ),
 
-  updateMessage: authenticate(async (parent, args, { currentUser }) => {
+  updateMessage: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();
 
     const message = await prisma.message.findUnique({

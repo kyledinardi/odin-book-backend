@@ -18,7 +18,7 @@ const throwInputError = (message) => {
 };
 
 const userQueries = {
-  getListedUsers: authenticate(async (parent, args, { currentUser }) => {
+  getListedUsers: authenticate(async (_, args, { currentUser }) => {
     const users = await prisma.user.findMany({
       where: {
         followers: { none: { id: currentUser.id } },
@@ -33,7 +33,7 @@ const userQueries = {
     return users;
   }),
 
-  getCurrentUser: authenticate((parent, args, { currentUser }) => {
+  getCurrentUser: authenticate((_, args, { currentUser }) => {
     const currentUserWithInclusions = prisma.user.findUnique({
       where: { id: currentUser.id },
       include: userInclusions,
@@ -42,7 +42,7 @@ const userQueries = {
     return currentUserWithInclusions;
   }),
 
-  searchUsers: authenticate(async (parent, { query, userId }) => {
+  searchUsers: authenticate(async (_, { query, userId }) => {
     const users = await prisma.user.findMany({
       where: {
         OR: [
@@ -59,7 +59,7 @@ const userQueries = {
     return users;
   }),
 
-  getUser: authenticate(async (parent, { userId }) => {
+  getUser: authenticate(async (_, { userId }) => {
     const user = await prisma.user.findUnique({
       where: { id: Number(userId) },
       include: userInclusions,
@@ -74,7 +74,7 @@ const userQueries = {
     return user;
   }),
 
-  getFollowing: authenticate(async (parent, { userId, cursor }) => {
+  getFollowing: authenticate(async (_, { userId, cursor }) => {
     const following = await prisma.user.findMany({
       where: { followers: { some: { id: Number(userId) } } },
       include: userInclusions,
@@ -85,7 +85,7 @@ const userQueries = {
     return following;
   }),
 
-  getFollowers: authenticate(async (parent, { userId, cursor }) => {
+  getFollowers: authenticate(async (_, { userId, cursor }) => {
     const followers = await prisma.user.findMany({
       where: { following: { some: { id: Number(userId) } } },
       include: userInclusions,
@@ -96,7 +96,7 @@ const userQueries = {
     return followers;
   }),
 
-  getMutuals: authenticate(async (parent, { userId, cursor }) => {
+  getMutuals: authenticate(async (_, { userId, cursor }) => {
     const mutuals = await prisma.user.findMany({
       where: {
         followers: { some: { id: Number(userId) } },
@@ -111,7 +111,7 @@ const userQueries = {
     return mutuals;
   }),
 
-  getFfs: authenticate(async (parent, { userId, cursor }, { currentUser }) => {
+  getFfs: authenticate(async (_, { userId, cursor }, { currentUser }) => {
     const ffs = await prisma.user.findMany({
       where: {
         following: { some: { id: Number(userId) } },
@@ -128,7 +128,7 @@ const userQueries = {
 };
 
 const userMutations = {
-  localLogin: async (parent, args) => {
+  localLogin: async (_, args) => {
     const username = args.username.trim();
     const password = args.password.trim();
 
@@ -151,7 +151,7 @@ const userMutations = {
     return { user, token };
   },
 
-  createUser: async (parent, args) => {
+  createUser: async (_, args) => {
     const username = args.username.trim();
     const displayName = args.displayName?.trim();
     const password = args.password.trim();
@@ -201,7 +201,7 @@ const userMutations = {
     return { user, token };
   },
 
-  updateProfile: authenticate(async (parent, args, { currentUser }) => {
+  updateProfile: authenticate(async (_, args, { currentUser }) => {
     if (currentUser.username === 'Guest' || currentUser.username === 'Guest2') {
       throw new GraphQLError('Cannot change guest profile', {
         extensions: { code: 'FORBIDDEN' },
@@ -243,7 +243,7 @@ const userMutations = {
     return user;
   }),
 
-  updatePassword: authenticate(async (parent, args, { currentUser }) => {
+  updatePassword: authenticate(async (_, args, { currentUser }) => {
     const currentPassword = args.currentPassword.trim();
     const newPassword = args.newPassword.trim();
     const newPasswordConfirmation = args.newPasswordConfirmation.trim();
@@ -284,7 +284,7 @@ const userMutations = {
     return updatedUser;
   }),
 
-  follow: authenticate(async (parent, { userId }, { currentUser }) => {
+  follow: authenticate(async (_, { userId }, { currentUser }) => {
     const user = await prisma.user.update({
       where: { id: currentUser.id },
       data: { following: { connect: { id: Number(userId) } } },
@@ -302,7 +302,7 @@ const userMutations = {
     return user;
   }),
 
-  unfollow: authenticate(async (parent, { userId }, { currentUser }) => {
+  unfollow: authenticate(async (_, { userId }, { currentUser }) => {
     const user = await prisma.user.update({
       where: { id: currentUser.id },
       data: { following: { disconnect: { id: Number(userId) } } },

@@ -53,7 +53,7 @@ const postQueries = {
     }
   ),
 
-  searchPosts: authenticate(async (parent, { query, cursor }) => {
+  searchPosts: authenticate(async (_, { query, cursor }) => {
     const posts = await prisma.post.findMany({
       where: { text: { contains: query, mode: 'insensitive' } },
       orderBy: [{ likes: { _count: 'desc' } }, { timestamp: 'asc' }],
@@ -64,7 +64,7 @@ const postQueries = {
     return posts;
   }),
 
-  getPost: authenticate(async (parent, { postId }) => {
+  getPost: authenticate(async (_, { postId }) => {
     const post = await prisma.post.findUnique({
       where: { id: parseInt(postId, 10) },
       include: postInclusions,
@@ -80,7 +80,7 @@ const postQueries = {
   }),
 
   getUserPosts: authenticate(
-    async (parent, { userId, postCursor, repostCursor }) => {
+    async (_, { userId, postCursor, repostCursor }) => {
       const user = await prisma.user.findUnique({
         where: { id: Number(userId) },
       });
@@ -111,7 +111,7 @@ const postQueries = {
     }
   ),
 
-  getImagePosts: authenticate(async (parent, { userId, cursor }) => {
+  getImagePosts: authenticate(async (_, { userId, cursor }) => {
     const posts = await prisma.post.findMany({
       where: { userId: Number(userId), NOT: { imageUrl: null } },
       orderBy: { timestamp: 'desc' },
@@ -122,7 +122,7 @@ const postQueries = {
     return posts;
   }),
 
-  getLikedPosts: authenticate(async (parent, { userId, cursor }) => {
+  getLikedPosts: authenticate(async (_, { userId, cursor }) => {
     const posts = await prisma.post.findMany({
       where: { likes: { some: { id: Number(userId) } } },
       orderBy: { timestamp: 'desc' },
@@ -135,7 +135,7 @@ const postQueries = {
 };
 
 const postMutations = {
-  createPost: authenticate(async (parent, args, { currentUser }) => {
+  createPost: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();
     const pollChoices = args.pollChoices?.map((choice) => choice.trim());
     let imageUrl = args.gifUrl?.trim();
@@ -177,7 +177,7 @@ const postMutations = {
     return post;
   }),
 
-  deletePost: authenticate(async (parent, { postId }, { currentUser }) => {
+  deletePost: authenticate(async (_, { postId }, { currentUser }) => {
     const post = await prisma.post.findUnique({
       where: { id: Number(postId) },
       include: postInclusions,
@@ -199,7 +199,7 @@ const postMutations = {
     return post;
   }),
 
-  updatePost: authenticate(async (parent, args, { currentUser }) => {
+  updatePost: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();
     let imageUrl = args.gifUrl?.trim();
 
@@ -234,7 +234,7 @@ const postMutations = {
     return updatedPost;
   }),
 
-  likePost: authenticate(async (parent, { postId }, { currentUser }) => {
+  likePost: authenticate(async (_, { postId }, { currentUser }) => {
     const post = await prisma.post.findUnique({
       where: { id: Number(postId) },
       include: { likes: true },
@@ -275,7 +275,7 @@ const postMutations = {
     return updatedPost;
   }),
 
-  voteInPoll: authenticate(async (parent, { choiceId }, { currentUser }) => {
+  voteInPoll: authenticate(async (_, { choiceId }, { currentUser }) => {
     const choice = await prisma.choice.findUnique({
       where: { id: Number(choiceId) },
       include: { votes: true },
@@ -302,7 +302,7 @@ const postMutations = {
     return updatedChoice.post;
   }),
 
-  repost: authenticate(async (parent, { contentType, id }, { currentUser }) => {
+  repost: authenticate(async (_, { contentType, id }, { currentUser }) => {
     if (contentType !== 'post' && contentType !== 'comment') {
       throw new GraphQLError('Invalid contentType', {
         extensions: { code: 'BAD_USER_INPUT' },

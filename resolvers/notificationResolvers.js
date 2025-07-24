@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 const notificationQueries = {
   getNotifications: authenticate(
-    async (parent, { cursor }, { currentUser }) => {
+    async (_, { cursor }, { currentUser }) => {
       const notifications = await prisma.notification.findMany({
         where: { targetUserId: currentUser.id },
         orderBy: { timestamp: 'desc' },
@@ -24,7 +24,7 @@ const notificationQueries = {
   ),
 
   refreshNotifications: authenticate(
-    async (parent, { timestamp }, { currentUser }) => {
+    async (_, { timestamp }, { currentUser }) => {
       const notifications = await prisma.notification.findMany({
         where: {
           targetUserId: currentUser.id,

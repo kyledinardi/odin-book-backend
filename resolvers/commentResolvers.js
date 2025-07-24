@@ -8,7 +8,7 @@ const getPaginationOptions = require('../utils/paginationOptions');
 const prisma = new PrismaClient();
 
 const commentQueries = {
-  getComment: authenticate(async (parent, { commentId }) => {
+  getComment: authenticate(async (_, { commentId }) => {
     const comment = await prisma.comment.findUnique({
       where: { id: Number(commentId) },
       include: commentInclusions,
@@ -37,7 +37,7 @@ const commentQueries = {
     return comment;
   }),
 
-  getUserComments: authenticate(async (parent, { userId, cursor }) => {
+  getUserComments: authenticate(async (_, { userId, cursor }) => {
     const comments = await prisma.comment.findMany({
       where: { userId: Number(userId) },
       include: commentInclusions,
@@ -49,7 +49,7 @@ const commentQueries = {
     return comments;
   }),
 
-  getPostComments: authenticate(async (parent, { postId, cursor }) => {
+  getPostComments: authenticate(async (_, { postId, cursor }) => {
     const comments = await prisma.comment.findMany({
       where: { postId: Number(postId), parentId: null },
       include: commentInclusions,
@@ -60,7 +60,7 @@ const commentQueries = {
     return comments;
   }),
 
-  getReplies: authenticate(async (parent, { commentId, cursor }) => {
+  getReplies: authenticate(async (_, { commentId, cursor }) => {
     const replies = await prisma.comment.findMany({
       where: { parentId: Number(commentId) },
       include: commentInclusions,
@@ -73,7 +73,7 @@ const commentQueries = {
 };
 
 const commentMutations = {
-  createRootComment: authenticate(async (parent, args, { currentUser }) => {
+  createRootComment: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();
     let imageUrl = args.gifUrl?.trim();
 
@@ -116,7 +116,7 @@ const commentMutations = {
     return comment;
   }),
 
-  createReply: authenticate(async (parent, args, { currentUser }) => {
+  createReply: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();
     let imageUrl = args.gifUrl?.trim();
 
@@ -161,7 +161,7 @@ const commentMutations = {
   }),
 
   deleteComment: authenticate(
-    async (parent, { commentId }, { currentUser }) => {
+    async (_, { commentId }, { currentUser }) => {
       const comment = await prisma.comment.findUnique({
         where: { id: Number(commentId) },
         include: commentInclusions,
@@ -184,7 +184,7 @@ const commentMutations = {
     }
   ),
 
-  updateComment: authenticate(async (parent, args, { currentUser }) => {
+  updateComment: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();
     let imageUrl = args.gifUrl?.trim();
 
@@ -219,7 +219,7 @@ const commentMutations = {
     return updatedComment;
   }),
 
-  likeComment: authenticate(async (parent, { commentId }, { currentUser }) => {
+  likeComment: authenticate(async (_, { commentId }, { currentUser }) => {
     const comment = await prisma.comment.findUnique({
       where: { id: Number(commentId) },
     });
@@ -249,7 +249,7 @@ const commentMutations = {
   }),
 
   unlikeComment: authenticate(
-    async (parent, { commentId }, { currentUser }) => {
+    async (_, { commentId }, { currentUser }) => {
       const comment = await prisma.comment.findUnique({
         where: { id: Number(commentId) },
       });

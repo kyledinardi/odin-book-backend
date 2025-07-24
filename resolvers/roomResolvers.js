@@ -7,7 +7,7 @@ const getPaginationOptions = require('../utils/paginationOptions');
 const prisma = new PrismaClient();
 
 const roomQueries = {
-  getAllRooms: authenticate(async (parent, { cursor }, { currentUser }) => {
+  getAllRooms: authenticate(async (_, { cursor }, { currentUser }) => {
     const rooms = await prisma.room.findMany({
       where: { users: { some: { id: currentUser.id } } },
       orderBy: { lastUpdated: 'desc' },
@@ -18,7 +18,7 @@ const roomQueries = {
     return rooms;
   }),
 
-  getRoom: authenticate(async (parent, { roomId }, { currentUser }) => {
+  getRoom: authenticate(async (_, { roomId }, { currentUser }) => {
     const room = await prisma.room.findUnique({
       where: { id: Number(roomId) },
       include: roomInclusions,
@@ -42,7 +42,7 @@ const roomQueries = {
 
 const roomMutations = {
   findOrCreateRoom: authenticate(
-    async (parent, { userId }, { currentUser }) => {
+    async (_, { userId }, { currentUser }) => {
       if (currentUser.id === Number(userId)) {
         throw new GraphQLError('You cannot chat with yourself', {
           extensions: { code: 'FORBIDDEN' },
