@@ -1,8 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
-const cloudinary = require('cloudinary').v2;
 const authenticate = require('../utils/authenticate');
 const getPaginationOptions = require('../utils/paginationOptions');
+const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
 const prisma = new PrismaClient();
 
@@ -25,9 +25,7 @@ const messageMutations = {
     let imageUrl = args.gifUrl?.trim();
 
     if (args.image) {
-      const image = await args.image;
-      const result = await cloudinary.uploader.upload(image.path);
-      imageUrl = result.secure_url;
+      imageUrl = await uploadToCloudinary(args.image);
     }
 
     const message = await prisma.message.create({
@@ -49,29 +47,27 @@ const messageMutations = {
     return message;
   }),
 
-  deleteMessage: authenticate(
-    async (_, { messageId }, { currentUser }) => {
-      const message = await prisma.message.findUnique({
-        where: { id: Number(messageId) },
-        include: { user: true },
+  deleteMessage: authenticate(async (_, { messageId }, { currentUser }) => {
+    const message = await prisma.message.findUnique({
+      where: { id: Number(messageId) },
+      include: { user: true },
+    });
+
+    if (!message) {
+      throw new GraphQLError('Message not found', {
+        extensions: { code: 'NOT_FOUND' },
       });
-
-      if (!message) {
-        throw new GraphQLError('Message not found', {
-          extensions: { code: 'NOT_FOUND' },
-        });
-      }
-
-      if (message.userId !== currentUser.id) {
-        throw new GraphQLError('You cannot delete this message', {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
-
-      await prisma.message.delete({ where: { id: message.id } });
-      return message;
     }
-  ),
+
+    if (message.userId !== currentUser.id) {
+      throw new GraphQLError('You cannot delete this message', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    await prisma.message.delete({ where: { id: message.id } });
+    return message;
+  }),
 
   updateMessage: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();

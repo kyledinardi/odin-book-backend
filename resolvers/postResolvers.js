@@ -1,9 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
-const cloudinary = require('cloudinary').v2;
 const authenticate = require('../utils/authenticate');
 const { postInclusions, repostInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
+const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
 const prisma = new PrismaClient();
 
@@ -155,9 +155,7 @@ const postMutations = {
     }
 
     if (args.image) {
-      const image = await args.image;
-      const result = await cloudinary.uploader.upload(image.path);
-      imageUrl = result.secure_url;
+      imageUrl = await uploadToCloudinary(args.image);
     }
 
     const post = await prisma.post.create({
@@ -220,14 +218,12 @@ const postMutations = {
     }
 
     if (args.image) {
-      const image = await args.image;
-      const result = await cloudinary.uploader.upload(image.path);
-      imageUrl = result.secure_url;
+      imageUrl = await uploadToCloudinary(args.image);
     }
 
     const updatedPost = await prisma.post.update({
       where: { id: post.id },
-      data: { text, imageUrl },
+      data: { text, imageUrl: imageUrl || undefined },
       include: postInclusions,
     });
 

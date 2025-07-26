@@ -1,9 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
-const cloudinary = require('cloudinary').v2;
 const authenticate = require('../utils/authenticate');
 const { commentInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
+const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
 const prisma = new PrismaClient();
 
@@ -88,9 +88,7 @@ const commentMutations = {
     }
 
     if (args.image) {
-      const image = await args.image;
-      const result = await cloudinary.uploader.upload(image.path);
-      imageUrl = result.secure_url;
+      imageUrl = await uploadToCloudinary(args.image);
     }
 
     const comment = await prisma.comment.create({
@@ -131,9 +129,7 @@ const commentMutations = {
     }
 
     if (args.image) {
-      const image = await args.image;
-      const result = await cloudinary.uploader.upload(image.path);
-      imageUrl = result.secure_url;
+      imageUrl = await uploadToCloudinary(args.image);
     }
 
     const comment = await prisma.comment.create({
@@ -160,29 +156,27 @@ const commentMutations = {
     return comment;
   }),
 
-  deleteComment: authenticate(
-    async (_, { commentId }, { currentUser }) => {
-      const comment = await prisma.comment.findUnique({
-        where: { id: Number(commentId) },
-        include: commentInclusions,
+  deleteComment: authenticate(async (_, { commentId }, { currentUser }) => {
+    const comment = await prisma.comment.findUnique({
+      where: { id: Number(commentId) },
+      include: commentInclusions,
+    });
+
+    if (!comment) {
+      throw new GraphQLError('Comment not found', {
+        extensions: { code: 'NOT_FOUND' },
       });
-
-      if (!comment) {
-        throw new GraphQLError('Comment not found', {
-          extensions: { code: 'NOT_FOUND' },
-        });
-      }
-
-      if (comment.userId !== currentUser.id) {
-        throw new GraphQLError('You cannot delete this comment', {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
-
-      await prisma.comment.delete({ where: { id: comment.id } });
-      return comment;
     }
-  ),
+
+    if (comment.userId !== currentUser.id) {
+      throw new GraphQLError('You cannot delete this comment', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    await prisma.comment.delete({ where: { id: comment.id } });
+    return comment;
+  }),
 
   updateComment: authenticate(async (_, args, { currentUser }) => {
     const text = args.text?.trim();
@@ -205,9 +199,7 @@ const commentMutations = {
     }
 
     if (args.image) {
-      const image = await args.image;
-      const result = await cloudinary.uploader.upload(image.path);
-      imageUrl = result.secure_url;
+      imageUrl = await uploadToCloudinary(args.image);
     }
 
     const updatedComment = await prisma.comment.update({
@@ -248,27 +240,25 @@ const commentMutations = {
     return updatedComment;
   }),
 
-  unlikeComment: authenticate(
-    async (_, { commentId }, { currentUser }) => {
-      const comment = await prisma.comment.findUnique({
-        where: { id: Number(commentId) },
+  unlikeComment: authenticate(async (_, { commentId }, { currentUser }) => {
+    const comment = await prisma.comment.findUnique({
+      where: { id: Number(commentId) },
+    });
+
+    if (!comment) {
+      throw new GraphQLError('Comment not found', {
+        extensions: { code: 'NOT_FOUND' },
       });
-
-      if (!comment) {
-        throw new GraphQLError('Comment not found', {
-          extensions: { code: 'NOT_FOUND' },
-        });
-      }
-
-      const updatedComment = await prisma.comment.update({
-        where: { id: comment.id },
-        data: { likes: { disconnect: { id: currentUser.id } } },
-        include: commentInclusions,
-      });
-
-      return updatedComment;
     }
-  ),
+
+    const updatedComment = await prisma.comment.update({
+      where: { id: comment.id },
+      data: { likes: { disconnect: { id: currentUser.id } } },
+      include: commentInclusions,
+    });
+
+    return updatedComment;
+  }),
 };
 
 module.exports = { commentQueries, commentMutations };

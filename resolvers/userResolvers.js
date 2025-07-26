@@ -3,11 +3,11 @@ const { GraphQLError } = require('graphql');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createHash } = require('node:crypto');
-const cloudinary = require('cloudinary').v2;
 const authenticate = require('../utils/authenticate');
 const { JWT_SECRET } = require('../utils/config');
 const { userInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
+const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
 const prisma = new PrismaClient();
 
@@ -223,15 +223,11 @@ const userMutations = {
     }
 
     if (args.pfp) {
-      const pfp = await args.pfp;
-      const result = await cloudinary.uploader.upload(pfp.path);
-      data.pfpUrl = result.secure_url;
+      data.pfpUrl = await uploadToCloudinary(args.image);
     }
 
     if (args.headerImage) {
-      const headerImage = await args.headerImage;
-      const result = await cloudinary.uploader.upload(headerImage.path);
-      data.headerImageUrl = result.secure_url;
+      data.headerImageUrl = await uploadToCloudinary(args.image);
     }
 
     const user = await prisma.user.update({
