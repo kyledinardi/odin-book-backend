@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
 const authenticate = require('../utils/authenticate');
-const { postInclusions, repostInclusions } = require('../utils/inclusions');
+const { postInclusions, repostInclusions, commentInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
@@ -64,10 +64,20 @@ const postQueries = {
     return posts;
   }),
 
-  getPost: authenticate(async (_, { postId }) => {
+  getPost: authenticate(async (_, { postId, cursor }) => {
     const post = await prisma.post.findUnique({
       where: { id: parseInt(postId, 10) },
-      include: postInclusions,
+
+      include: {
+        ...postInclusions,
+
+        comments: {
+          where: { parentId: null },
+          orderBy: { timestamp: 'desc' },
+          include: commentInclusions,
+          ...getPaginationOptions(cursor),
+        },
+      },
     });
 
     if (!post) {

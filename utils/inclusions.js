@@ -16,36 +16,27 @@ const postInclusions = {
   likes: true,
   reposts: true,
   pollChoices: { include: { votes: true } },
-
-  comments: {
-    where: { parentId: null },
-    orderBy: { timestamp: 'desc' },
-    take: 20,
-    include: { user: true, likes: true, replies: true, reposts: true },
-  },
+  _count: { select: { comments: true } },
 };
 
 const commentInclusions = {
   user: true,
   likes: true,
   reposts: true,
-  post: { include: postInclusions },
-
-  parent: {
-    include: { user: true, likes: true, replies: true, reposts: true },
-  },
-
-  replies: {
-    orderBy: { timestamp: 'desc' },
-    include: { user: true, likes: true, replies: true, reposts: true },
-    take: 20,
-  },
+  _count: { select: { replies: true } },
 };
 
 const repostInclusions = {
   user: true,
   post: { include: postInclusions },
-  comment: { include: commentInclusions },
+  
+  comment: {
+    include: {
+      ...commentInclusions,
+      post: { include: { user: true } },
+      parent: { include: { user: true } },
+    },
+  },
 };
 
 const roomInclusions = {

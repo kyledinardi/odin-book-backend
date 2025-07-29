@@ -14,6 +14,14 @@ const typeDefs = `
     receivedNotifications: Int!
   }
 
+  type PostCounts {
+    comments: Int!
+  }
+
+  type CommentCounts {
+    replies: Int!
+  }
+
   type User {
     id: ID!
     username: String!
@@ -43,6 +51,7 @@ const typeDefs = `
     pollChoices: [Choice]
     comments: [Comment]
     reposts: [Repost]
+    _count: PostCounts
   }
 
   type Choice {
@@ -69,6 +78,7 @@ const typeDefs = `
     replies: [Comment]
     reposts: [Repost]
     notifications: [Notification]
+    _count: CommentCounts
     commentChain: [Comment]
   }
 
@@ -136,7 +146,7 @@ const typeDefs = `
 
     getIndexPosts(postCursor: ID, repostCursor: ID, timestamp: String): [PostOrRepost]
     searchPosts(query: String!, cursor: ID): [Post]
-    getPost(postId: ID!): Post
+    getPost(postId: ID!, cursor: ID): Post
     getUserPosts(userId: ID!, postCursor: ID, repostCursor: ID): [PostOrRepost]
     getImagePosts(userId: ID!, cursor: ID): [Post]
     getLikedPosts(userId: ID!, cursor: ID): [Post]
@@ -170,9 +180,9 @@ const typeDefs = `
     repost(id: ID!, contentType: String!): Repost
 
     createRootComment(postId: ID!, text: String, gifUrl: String, image: Upload): Comment
-    createReply(commentId: ID!, text: String, gifUrl: String, image: Upload): Comment
+    createReply(parentId: ID!, text: String, gifUrl: String, image: Upload): Comment
     deleteComment(commentId: ID!): Comment
-    updateComment(commentId: ID!, text: String, gifUrl: String): Comment
+    updateComment(commentId: ID!, text: String, gifUrl: String, image: Upload): Comment
     likeComment(commentId: ID!): Comment
     unlikeComment(commentId: ID!): Comment
 

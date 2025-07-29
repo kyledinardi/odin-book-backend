@@ -14,13 +14,13 @@
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
-    "prisma": "^6.1.0"
+    "prisma": "^6.13.0"
   },
   "dependencies": {
     "@apollo/server": "^4.12.2",
     "@faker-js/faker": "^9.0.3",
     "@graphql-tools/schema": "^10.0.23",
-    "@prisma/client": "^6.1.0",
+    "@prisma/client": "^6.13.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.0",
     "compression": "^1.7.5",

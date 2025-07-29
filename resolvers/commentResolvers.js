@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
 const authenticate = require('../utils/authenticate');
-const { commentInclusions } = require('../utils/inclusions');
+const { commentInclusions, postInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
@@ -11,7 +11,12 @@ const commentQueries = {
   getComment: authenticate(async (_, { commentId }) => {
     const comment = await prisma.comment.findUnique({
       where: { id: Number(commentId) },
-      include: commentInclusions,
+      include: {
+        ...commentInclusions,
+        post: { include: postInclusions },
+        parent: { include: commentInclusions },
+        replies: { include: commentInclusions },
+      },
     });
 
     if (!comment) {
@@ -159,7 +164,6 @@ const commentMutations = {
   deleteComment: authenticate(async (_, { commentId }, { currentUser }) => {
     const comment = await prisma.comment.findUnique({
       where: { id: Number(commentId) },
-      include: commentInclusions,
     });
 
     if (!comment) {
