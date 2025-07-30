@@ -33,8 +33,8 @@ const userQueries = {
     return users;
   }),
 
-  getCurrentUser: authenticate((_, args, { currentUser }) => {
-    const currentUserWithInclusions = prisma.user.findUnique({
+  getCurrentUser: authenticate(async (_, args, { currentUser }) => {
+    const currentUserWithInclusions = await prisma.user.findUnique({
       where: { id: currentUser.id },
       include: userInclusions,
     });
@@ -42,7 +42,7 @@ const userQueries = {
     return currentUserWithInclusions;
   }),
 
-  searchUsers: authenticate(async (_, { query, userId }) => {
+  searchUsers: authenticate(async (_, { query, cursor }) => {
     const users = await prisma.user.findMany({
       where: {
         OR: [
@@ -53,7 +53,7 @@ const userQueries = {
 
       include: userInclusions,
       orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
-      ...getPaginationOptions(userId),
+      ...getPaginationOptions(cursor),
     });
 
     return users;
@@ -281,31 +281,46 @@ const userMutations = {
   }),
 
   follow: authenticate(async (_, { userId }, { currentUser }) => {
-    const user = await prisma.user.update({
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) },
+      include: { followers: true },
+    });
+
+    if (!user) {
+      throw new GraphQLError('User not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (user.id === currentUser.id) {
+      throw new GraphQLError('You cannot follow yourself', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    let followAction = 'connect';
+
+    if (user.followers.some((follower) => follower.id === currentUser.id)) {
+      followAction = 'disconnect';
+    }
+
+    const updatedUser = await prisma.user.update({
       where: { id: currentUser.id },
-      data: { following: { connect: { id: Number(userId) } } },
+      data: { following: { [followAction]: { id: Number(userId) } } },
       include: { following: true },
     });
 
-    await prisma.notification.create({
-      data: {
-        type: 'follow',
-        sourceUser: { connect: { id: currentUser.id } },
-        targetUser: { connect: { id: Number(userId) } },
-      },
-    });
+    if (followAction === 'connect') {
+      await prisma.notification.create({
+        data: {
+          type: 'follow',
+          sourceUser: { connect: { id: currentUser.id } },
+          targetUser: { connect: { id: Number(userId) } },
+        },
+      });
+    }
 
-    return user;
-  }),
-
-  unfollow: authenticate(async (_, { userId }, { currentUser }) => {
-    const user = await prisma.user.update({
-      where: { id: currentUser.id },
-      data: { following: { disconnect: { id: Number(userId) } } },
-      include: { following: true },
-    });
-
-    return user;
+    return updatedUser;
   }),
 };
 

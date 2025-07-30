@@ -1,7 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
 const authenticate = require('../utils/authenticate');
-const { postInclusions, repostInclusions, commentInclusions } = require('../utils/inclusions');
+const {
+  postInclusions,
+  repostInclusions,
+  commentInclusions,
+} = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
@@ -252,22 +256,19 @@ const postMutations = {
       });
     }
 
-    let isLiked = false;
+    let likeAction = 'connect';
 
     if (post.likes.some((like) => like.id === currentUser.id)) {
-      isLiked = true;
+      likeAction = 'disconnect';
     }
 
     const updatedPost = await prisma.post.update({
       where: { id: post.id },
       include: postInclusions,
-
-      data: {
-        likes: { [isLiked ? 'disconnect' : 'connect']: { id: currentUser.id } },
-      },
+      data: { likes: { [likeAction]: { id: currentUser.id } } },
     });
 
-    if (!isLiked) {
+    if (likeAction === 'connect') {
       await prisma.notification.create({
         data: {
           type: 'like',

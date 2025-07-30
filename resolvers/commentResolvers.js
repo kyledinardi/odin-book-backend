@@ -8,14 +8,20 @@ const uploadToCloudinary = require('../utils/uploadToCloudinary');
 const prisma = new PrismaClient();
 
 const commentQueries = {
-  getComment: authenticate(async (_, { commentId }) => {
+  getComment: authenticate(async (_, { commentId, cursor }) => {
     const comment = await prisma.comment.findUnique({
       where: { id: Number(commentId) },
+
       include: {
         ...commentInclusions,
         post: { include: postInclusions },
         parent: { include: commentInclusions },
-        replies: { include: commentInclusions },
+
+        replies: {
+          orderBy: { timestamp: 'desc' },
+          include: commentInclusions,
+          ...getPaginationOptions(cursor),
+        },
       },
     });
 
@@ -218,6 +224,7 @@ const commentMutations = {
   likeComment: authenticate(async (_, { commentId }, { currentUser }) => {
     const comment = await prisma.comment.findUnique({
       where: { id: Number(commentId) },
+      include: { likes: true },
     });
 
     if (!comment) {
@@ -226,40 +233,28 @@ const commentMutations = {
       });
     }
 
-    const updatedComment = await prisma.comment.update({
-      where: { id: comment.id },
-      data: { likes: { connect: { id: currentUser.id } } },
-      include: commentInclusions,
-    });
+    let likeAction = 'connect';
 
-    await prisma.notification.create({
-      data: {
-        type: 'like',
-        sourceUser: { connect: { id: currentUser.id } },
-        targetUser: { connect: { id: comment.userId } },
-        comment: { connect: { id: comment.id } },
-      },
-    });
-
-    return updatedComment;
-  }),
-
-  unlikeComment: authenticate(async (_, { commentId }, { currentUser }) => {
-    const comment = await prisma.comment.findUnique({
-      where: { id: Number(commentId) },
-    });
-
-    if (!comment) {
-      throw new GraphQLError('Comment not found', {
-        extensions: { code: 'NOT_FOUND' },
-      });
+    if (comment.likes.some((like) => like.id === currentUser.id)) {
+      likeAction = 'disconnect';
     }
 
     const updatedComment = await prisma.comment.update({
       where: { id: comment.id },
-      data: { likes: { disconnect: { id: currentUser.id } } },
       include: commentInclusions,
+      data: { likes: { [likeAction]: { id: currentUser.id } } },
     });
+
+    if (likeAction === 'connect') {
+      await prisma.notification.create({
+        data: {
+          type: 'like',
+          sourceUser: { connect: { id: currentUser.id } },
+          targetUser: { connect: { id: comment.userId } },
+          comment: { connect: { id: comment.id } },
+        },
+      });
+    }
 
     return updatedComment;
   }),

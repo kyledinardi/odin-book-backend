@@ -136,7 +136,7 @@ const typeDefs = `
 
   type Query {
     getListedUsers: [User]
-    searchUsers(query: String!, userId: ID): [User]
+    searchUsers(query: String!, cursor: ID): [User]
     getCurrentUser: User
     getUser(userId: ID!): User
     getFollowing(userId: ID!, cursor: ID): [User]
@@ -151,7 +151,7 @@ const typeDefs = `
     getImagePosts(userId: ID!, cursor: ID): [Post]
     getLikedPosts(userId: ID!, cursor: ID): [Post]
 
-    getComment(commentId: ID!): Comment
+    getComment(commentId: ID!, cursor: ID): Comment
     getUserComments(userId: ID!, cursor: ID): [Comment]
     getPostComments(postId: ID!, commentId: ID): [Comment]
     getReplies(commentId: ID!, replyId: ID): [Comment]
@@ -169,7 +169,6 @@ const typeDefs = `
     updateProfile(pfp: Upload, headerImage: Upload, displayName: String, bio: String, location: String, website: String): User
     updatePassword(currentPassword: String!, newPassword: String!, newPasswordConfirmation: String!): User
     follow(userId: ID!): User
-    unfollow(userId: ID!): User
 
     createPost(text: String, gifUrl: String, pollChoices: [String!], image: Upload): Post
     deletePost(postId: ID!): Post
@@ -184,7 +183,6 @@ const typeDefs = `
     deleteComment(commentId: ID!): Comment
     updateComment(commentId: ID!, text: String, gifUrl: String, image: Upload): Comment
     likeComment(commentId: ID!): Comment
-    unlikeComment(commentId: ID!): Comment
 
     findOrCreateRoom(userId: ID!): Room
     createMessage(roomId: ID!, text: String, gifUrl: String): Message

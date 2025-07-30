@@ -72,7 +72,7 @@ async function main() {
           bio: faker.person.bio(),
           joinDate: faker.date.between({ from: getDate(50), to: getDate(20) }),
         },
-      }),
+      })
     );
   }
 
@@ -93,7 +93,7 @@ async function main() {
           room: { connect: { id: 1 } },
           timestamp: faker.date.between({ from: getDate(1), to: getDate(0) }),
         },
-      }),
+      })
     );
   }
 
@@ -114,7 +114,7 @@ async function main() {
         data: {
           following: { connect: { id: randomId2 } },
         },
-      }),
+      })
     );
   }
 
@@ -129,7 +129,7 @@ async function main() {
           timestamp: faker.date.between({ from: getDate(20), to: getDate(10) }),
           user: { connect: { id: rng(100) } },
         },
-      }),
+      })
     );
   }
 
@@ -145,7 +145,7 @@ async function main() {
           user: { connect: { id: rng(100) } },
           post: { connect: { id: rng(200) } },
         },
-      }),
+      })
     );
   }
 
@@ -174,7 +174,7 @@ async function main() {
       prisma.post.update({
         where: { id: rng(200) },
         data: { likes: { connect: { id: rng(100) } } },
-      }),
+      })
     );
   }
 
@@ -186,7 +186,7 @@ async function main() {
       prisma.comment.update({
         where: { id: rng(600) },
         data: { likes: { connect: { id: rng(100) } } },
-      }),
+      })
     );
   }
 
