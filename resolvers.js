@@ -10,7 +10,7 @@ const {
   messageQueries,
   messageMutations,
 } = require('./resolvers/messageResolvers');
-const { notificationQueries } = require('./resolvers/notificationResolvers');
+const { miscQueries, miscMutations } = require('./resolvers/miscResolvers');
 
 const resolvers = {
   Upload: GraphQLUpload,
@@ -35,7 +35,7 @@ const resolvers = {
     ...commentQueries,
     ...roomQueries,
     ...messageQueries,
-    ...notificationQueries,
+    ...miscQueries,
   },
 
   Mutation: {
@@ -44,6 +44,7 @@ const resolvers = {
     ...commentMutations,
     ...roomMutations,
     ...messageMutations,
+    ...miscMutations,
   },
 };
 

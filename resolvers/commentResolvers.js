@@ -113,14 +113,16 @@ const commentMutations = {
       include: commentInclusions,
     });
 
-    await prisma.notification.create({
-      data: {
-        type: 'comment',
-        sourceUser: { connect: { id: currentUser.id } },
-        targetUser: { connect: { id: post.userId } },
-        comment: { connect: { id: comment.id } },
-      },
-    });
+    if (post.userId !== currentUser.id) {
+      await prisma.notification.create({
+        data: {
+          type: 'comment',
+          sourceUser: { connect: { id: currentUser.id } },
+          targetUser: { connect: { id: post.userId } },
+          comment: { connect: { id: comment.id } },
+        },
+      });
+    }
 
     return comment;
   }),
@@ -155,14 +157,16 @@ const commentMutations = {
       include: commentInclusions,
     });
 
-    await prisma.notification.create({
-      data: {
-        type: 'comment',
-        sourceUser: { connect: { id: currentUser.id } },
-        targetUser: { connect: { id: parentComment.userId } },
-        comment: { connect: { id: comment.id } },
-      },
-    });
+    if (parentComment.userId !== currentUser.id) {
+      await prisma.notification.create({
+        data: {
+          type: 'comment',
+          sourceUser: { connect: { id: currentUser.id } },
+          targetUser: { connect: { id: parentComment.userId } },
+          comment: { connect: { id: comment.id } },
+        },
+      });
+    }
 
     return comment;
   }),
@@ -245,7 +249,7 @@ const commentMutations = {
       data: { likes: { [likeAction]: { id: currentUser.id } } },
     });
 
-    if (likeAction === 'connect') {
+    if (likeAction === 'connect' && comment.userId !== currentUser.id) {
       await prisma.notification.create({
         data: {
           type: 'like',

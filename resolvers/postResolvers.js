@@ -70,7 +70,7 @@ const postQueries = {
 
   getPost: authenticate(async (_, { postId, cursor }) => {
     const post = await prisma.post.findUnique({
-      where: { id: parseInt(postId, 10) },
+      where: { id: Number(postId) },
 
       include: {
         ...postInclusions,
@@ -268,7 +268,7 @@ const postMutations = {
       data: { likes: { [likeAction]: { id: currentUser.id } } },
     });
 
-    if (likeAction === 'connect') {
+    if (likeAction === 'connect' && post.userId !== currentUser.id) {
       await prisma.notification.create({
         data: {
           type: 'like',
@@ -280,85 +280,6 @@ const postMutations = {
     }
 
     return updatedPost;
-  }),
-
-  voteInPoll: authenticate(async (_, { choiceId }, { currentUser }) => {
-    const choice = await prisma.choice.findUnique({
-      where: { id: Number(choiceId) },
-      include: {
-        post: { include: { pollChoices: { include: { votes: true } } } },
-      },
-    });
-
-    if (!choice) {
-      throw new GraphQLError('Choice not found', {
-        extensions: { code: 'NOT_FOUND' },
-      });
-    }
-
-    choice.post.pollChoices.forEach((c) => {
-      if (c.votes.some((vote) => vote.id === currentUser.id)) {
-        throw new GraphQLError('You have already voted in this poll', {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
-    });
-
-    const updatedChoice = await prisma.choice.update({
-      where: { id: choice.id },
-      include: { votes: true },
-      data: { votes: { connect: { id: currentUser.id } } },
-    });
-
-    return updatedChoice;
-  }),
-
-  repost: authenticate(async (_, { contentType, id }, { currentUser }) => {
-    if (contentType !== 'post' && contentType !== 'comment') {
-      throw new GraphQLError('Invalid contentType', {
-        extensions: { code: 'BAD_USER_INPUT' },
-      });
-    }
-
-    const content = await prisma[contentType].findUnique({
-      where: { id: Number(id) },
-    });
-
-    if (!content) {
-      throw new GraphQLError(`${contentType} not found`, {
-        extensions: { code: 'NOT_FOUND' },
-      });
-    }
-
-    const existingRepost = await prisma.repost.findFirst({
-      where: { userId: currentUser.id, [`${contentType}Id`]: content.id },
-      include: repostInclusions,
-    });
-
-    if (existingRepost) {
-      await prisma.repost.delete({ where: { id: existingRepost.id } });
-      return existingRepost;
-    }
-
-    const newRepost = await prisma.repost.create({
-      data: {
-        user: { connect: { id: currentUser.id } },
-        [contentType]: { connect: { id: content.id } },
-      },
-
-      include: repostInclusions,
-    });
-
-    await prisma.notification.create({
-      data: {
-        type: 'repost',
-        sourceUser: { connect: { id: currentUser.id } },
-        targetUser: { connect: { id: content.userId } },
-        [contentType]: { connect: { id: content.id } },
-      },
-    });
-
-    return newRepost;
   }),
 };
 

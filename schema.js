@@ -7,6 +7,11 @@ const typeDefs = `
     encoding: String!
   }
 
+  type LoginResponse {
+    user: User!
+    token: String!
+  }
+
   type UserCounts {
     followers: Int!
     following: Int!
@@ -127,11 +132,6 @@ const typeDefs = `
     roomId: Int
   }
 
-  type LoginResponse {
-    user: User!
-    token: String!
-  }
-
   union PostOrRepost = Post | Repost
 
   type Query {
@@ -159,8 +159,7 @@ const typeDefs = `
     getAllRooms(cursor: ID): [Room]
     getRoom(roomId: ID!): Room
     getMessages(roomId: ID!, cursor: ID): [Message]
-    getNotifications(cursor: ID): [Notification]
-    refreshNotifications(timestamp: String!): [Notification]
+    getNotifications(cursor: ID, timestamp: String): [Notification]
   }
 
   type Mutation {
@@ -175,9 +174,6 @@ const typeDefs = `
     updatePost(postId: ID!, text: String, gifUrl: String, image: Upload): Post
     likePost(postId: ID!): Post
 
-    voteInPoll(choiceId: ID!): Choice
-    repost(id: ID!, contentType: String!): Repost
-
     createRootComment(postId: ID!, text: String, gifUrl: String, image: Upload): Comment
     createReply(parentId: ID!, text: String, gifUrl: String, image: Upload): Comment
     deleteComment(commentId: ID!): Comment
@@ -188,7 +184,10 @@ const typeDefs = `
     createMessage(roomId: ID!, text: String, gifUrl: String): Message
     deleteMessage(messageId: ID!): Message
     updateMessage(messageId: ID!, text: String!): Message
-    }
+
+    voteInPoll(choiceId: ID!): Choice
+    repost(id: ID!, contentType: String!): Repost
+  }
 `;
 
 module.exports = typeDefs;
