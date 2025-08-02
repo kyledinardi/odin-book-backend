@@ -39,20 +39,9 @@ const repostInclusions = {
   },
 };
 
-const roomInclusions = {
-  users: true,
-
-  messages: {
-    orderBy: { timestamp: 'asc' },
-    include: { user: true },
-    take: 20,
-  },
-};
-
 module.exports = {
   userInclusions,
   postInclusions,
   commentInclusions,
   repostInclusions,
-  roomInclusions,
 };

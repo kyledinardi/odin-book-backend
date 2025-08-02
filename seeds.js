@@ -6,14 +6,8 @@ const Crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
-
-function getDate(billionMs) {
-  return Date.now() - billionMs * 1_000_000_000;
-}
-
-function rng(max) {
-  return Math.ceil(Math.random() * max);
-}
+const getDate = (billionMs) => Date.now() - billionMs * 1_000_000_000;
+const rng = (max) => Math.ceil(Math.random() * max);
 
 async function main() {
   const userPromises = [];

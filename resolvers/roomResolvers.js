@@ -1,7 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
 const authenticate = require('../utils/authenticate');
-const { roomInclusions } = require('../utils/inclusions');
 const getPaginationOptions = require('../utils/paginationOptions');
 
 const prisma = new PrismaClient();
@@ -11,7 +10,12 @@ const roomQueries = {
     const rooms = await prisma.room.findMany({
       where: { users: { some: { id: currentUser.id } } },
       orderBy: { lastUpdated: 'desc' },
-      include: roomInclusions,
+
+      include: {
+        users: true,
+        messages: { orderBy: { timestamp: 'desc' }, take: 1 },
+      },
+
       ...getPaginationOptions(cursor),
     });
 
@@ -21,7 +25,16 @@ const roomQueries = {
   getRoom: authenticate(async (_, { roomId }, { currentUser }) => {
     const room = await prisma.room.findUnique({
       where: { id: Number(roomId) },
-      include: roomInclusions,
+
+      include: {
+        users: true,
+
+        messages: {
+          include: { user: true },
+          orderBy: { timestamp: 'asc' },
+          take: 20,
+        },
+      },
     });
 
     if (!room) {
@@ -41,40 +54,34 @@ const roomQueries = {
 };
 
 const roomMutations = {
-  findOrCreateRoom: authenticate(
-    async (_, { userId }, { currentUser }) => {
-      if (currentUser.id === Number(userId)) {
-        throw new GraphQLError('You cannot chat with yourself', {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
-
-      let room = await prisma.room.findFirst({
-        where: {
-          AND: [
-            { users: { some: { id: currentUser.id } } },
-            { users: { some: { id: Number(userId) } } },
-          ],
-        },
-
-        include: roomInclusions,
+  findOrCreateRoom: authenticate(async (_, { userId }, { currentUser }) => {
+    if (currentUser.id === Number(userId)) {
+      throw new GraphQLError('You cannot chat with yourself', {
+        extensions: { code: 'FORBIDDEN' },
       });
-
-      if (!room) {
-        room = await prisma.room.create({
-          data: {
-            users: {
-              connect: [{ id: currentUser.id }, { id: Number(userId) }],
-            },
-          },
-
-          include: roomInclusions,
-        });
-      }
-
-      return room;
     }
-  ),
+
+    let room = await prisma.room.findFirst({
+      where: {
+        AND: [
+          { users: { some: { id: currentUser.id } } },
+          { users: { some: { id: Number(userId) } } },
+        ],
+      },
+    });
+
+    if (!room) {
+      room = await prisma.room.create({
+        data: {
+          users: {
+            connect: [{ id: currentUser.id }, { id: Number(userId) }],
+          },
+        },
+      });
+    }
+
+    return room;
+  }),
 };
 
 module.exports = { roomQueries, roomMutations };
