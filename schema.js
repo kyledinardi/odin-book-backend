@@ -142,7 +142,7 @@ const typeDefs = `
     getFollowing(userId: ID!, cursor: ID): [User]
     getFollowers(userId: ID!, cursor: ID): [User]
     getMutuals(userId: ID!, cursor: ID): [User]
-    getFfs(userId: ID!, cursor: ID): [User]
+    getFollowedFollowers(userId: ID!, cursor: ID): [User]
 
     getIndexPosts(postCursor: ID, repostCursor: ID, timestamp: String): [PostOrRepost]
     searchPosts(query: String!, cursor: ID): [Post]
@@ -157,8 +157,7 @@ const typeDefs = `
     getReplies(commentId: ID!, replyId: ID): [Comment]
 
     getAllRooms(cursor: ID): [Room]
-    getRoom(roomId: ID!): Room
-    getMessages(roomId: ID!, cursor: ID): [Message]
+    getRoom(roomId: ID!, cursor: ID): Room
     getNotifications(cursor: ID, timestamp: String): [Notification]
   }
 
@@ -181,7 +180,7 @@ const typeDefs = `
     likeComment(commentId: ID!): Comment
 
     findOrCreateRoom(userId: ID!): Room
-    createMessage(roomId: ID!, text: String, gifUrl: String): Message
+    createMessage(roomId: ID!, text: String, gifUrl: String, image: Upload): Message
     deleteMessage(messageId: ID!): Message
     updateMessage(messageId: ID!, text: String!): Message
 

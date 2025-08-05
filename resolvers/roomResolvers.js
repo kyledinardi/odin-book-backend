@@ -22,7 +22,7 @@ const roomQueries = {
     return rooms;
   }),
 
-  getRoom: authenticate(async (_, { roomId }, { currentUser }) => {
+  getRoom: authenticate(async (_, { roomId, cursor }, { currentUser }) => {
     const room = await prisma.room.findUnique({
       where: { id: Number(roomId) },
 
@@ -30,9 +30,8 @@ const roomQueries = {
         users: true,
 
         messages: {
-          include: { user: true },
-          orderBy: { timestamp: 'asc' },
-          take: 20,
+          orderBy: { timestamp: 'desc' },
+          ...getPaginationOptions(cursor),
         },
       },
     });

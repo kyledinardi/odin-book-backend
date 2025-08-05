@@ -6,10 +6,7 @@ const {
   commentMutations,
 } = require('./resolvers/commentResolvers');
 const { roomQueries, roomMutations } = require('./resolvers/roomResolvers');
-const {
-  messageQueries,
-  messageMutations,
-} = require('./resolvers/messageResolvers');
+const { messageMutations } = require('./resolvers/messageResolvers');
 const { miscQueries, miscMutations } = require('./resolvers/miscResolvers');
 
 const resolvers = {
@@ -34,7 +31,6 @@ const resolvers = {
     ...postQueries,
     ...commentQueries,
     ...roomQueries,
-    ...messageQueries,
     ...miscQueries,
   },
 

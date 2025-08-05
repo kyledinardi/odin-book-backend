@@ -1,26 +1,13 @@
 const { PrismaClient } = require('@prisma/client');
 const { GraphQLError } = require('graphql');
 const authenticate = require('../utils/authenticate');
-const getPaginationOptions = require('../utils/paginationOptions');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 
 const prisma = new PrismaClient();
 
-const messageQueries = {
-  getMessages: authenticate(async (_, { roomId, cursor }) => {
-    const messages = await prisma.message.findMany({
-      where: { room: { id: Number(roomId) } },
-      orderBy: { timestamp: 'asc' },
-      include: { user: true },
-      ...getPaginationOptions(cursor),
-    });
-
-    return messages;
-  }),
-};
-
 const messageMutations = {
   createMessage: authenticate(async (_, args, { currentUser }) => {
+    const roomId = Number(args.roomId);
     const text = args.text?.trim();
     let imageUrl = args.gifUrl?.trim();
 
@@ -33,15 +20,15 @@ const messageMutations = {
         text,
         imageUrl,
         user: { connect: { id: currentUser.id } },
-        room: { connect: { id: Number(args.roomId) } },
+        room: { connect: { id: roomId } },
       },
 
       include: { user: true },
     });
 
     await prisma.room.update({
-      where: { id: Number(args.roomId) },
-      data: { lastMessage: { connect: { id: message.id } } },
+      where: { id: roomId },
+      data: { lastUpdated: new Date() },
     });
 
     return message;
@@ -50,7 +37,6 @@ const messageMutations = {
   deleteMessage: authenticate(async (_, { messageId }, { currentUser }) => {
     const message = await prisma.message.findUnique({
       where: { id: Number(messageId) },
-      include: { user: true },
     });
 
     if (!message) {
@@ -91,11 +77,10 @@ const messageMutations = {
     const updatedMessage = await prisma.message.update({
       where: { id: message.id },
       data: { text },
-      include: { user: true },
     });
 
     return updatedMessage;
   }),
 };
 
-module.exports = { messageQueries, messageMutations };
+module.exports = { messageMutations };

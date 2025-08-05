@@ -51,9 +51,15 @@ const commentQueries = {
   getUserComments: authenticate(async (_, { userId, cursor }) => {
     const comments = await prisma.comment.findMany({
       where: { userId: Number(userId) },
-      include: commentInclusions,
       orderBy: { timestamp: 'desc' },
       distinct: ['postId'],
+
+      include: {
+        ...commentInclusions,
+        post: { include: postInclusions },
+        parent: { include: commentInclusions },
+      },
+
       ...getPaginationOptions(cursor),
     });
 

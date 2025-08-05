@@ -111,20 +111,22 @@ const userQueries = {
     return mutuals;
   }),
 
-  getFfs: authenticate(async (_, { userId, cursor }, { currentUser }) => {
-    const ffs = await prisma.user.findMany({
-      where: {
-        following: { some: { id: Number(userId) } },
-        followers: { some: { id: currentUser.id } },
-      },
+  getFollowedFollowers: authenticate(
+    async (_, { userId, cursor }, { currentUser }) => {
+      const followedFollowers = await prisma.user.findMany({
+        where: {
+          following: { some: { id: Number(userId) } },
+          followers: { some: { id: currentUser.id } },
+        },
 
-      include: userInclusions,
-      orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
-      ...getPaginationOptions(cursor),
-    });
+        include: userInclusions,
+        orderBy: [{ followers: { _count: 'desc' } }, { joinDate: 'asc' }],
+        ...getPaginationOptions(cursor),
+      });
 
-    return ffs;
-  }),
+      return followedFollowers;
+    }
+  ),
 };
 
 const userMutations = {
@@ -159,19 +161,21 @@ const userMutations = {
 
     if (!username) {
       throwInputError('Username must not be empty');
-    } else {
-      const usernameInDatabase = await prisma.user.findUnique({
-        where: { username },
-      });
-
-      if (usernameInDatabase) {
-        throwInputError('A user already exists with this username');
-      }
     }
 
     if (!password) {
       throwInputError('Password must not be empty');
-    } else if (password !== passwordConfirmation) {
+    }
+
+    const usernameInDatabase = await prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (usernameInDatabase) {
+      throwInputError('A user already exists with this username');
+    }
+
+    if (password !== passwordConfirmation) {
       throwInputError('Passwords did not match');
     }
 
@@ -215,19 +219,12 @@ const userMutations = {
       website: args.website?.trim(),
     };
 
-    try {
-      // eslint-disable-next-line no-unused-vars
-      const isValidUrl = new URL(data.website);
-    } catch (err) {
-      throwInputError('Website must be a valid URL');
-    }
-
     if (args.pfp) {
-      data.pfpUrl = await uploadToCloudinary(args.image);
+      data.pfpUrl = await uploadToCloudinary(args.pfp);
     }
 
     if (args.headerImage) {
-      data.headerImageUrl = await uploadToCloudinary(args.image);
+      data.headerUrl = await uploadToCloudinary(args.headerImage);
     }
 
     const user = await prisma.user.update({
@@ -256,17 +253,19 @@ const userMutations = {
 
     if (!currentPassword) {
       throwInputError('Current password must not be empty');
-    } else {
-      const match = await bcrypt.compare(currentPassword, user.passwordHash);
-
-      if (!match) {
-        throwInputError('Incorrect current password');
-      }
     }
 
     if (!newPassword) {
       throwInputError('New Password must not be empty');
-    } else if (newPassword !== newPasswordConfirmation) {
+    }
+
+    const match = await bcrypt.compare(currentPassword, user.passwordHash);
+
+    if (!match) {
+      throwInputError('Incorrect current password');
+    }
+
+    if (newPassword !== newPasswordConfirmation) {
       throwInputError('Passwords did not match');
     }
 

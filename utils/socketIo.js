@@ -9,17 +9,17 @@ function setupSocketIo(server) {
 
   io.on('connection', (socket) => {
     socket.on('joinUserRoom', (userId) => socket.join(`userRoom-${userId}`));
-    socket.on('joinChatRoom', (roomId) => socket.join(`chatRoom-${roomId}`));
+    socket.on('joinChatRoom', (roomId) => {
+      socket.join(`chatRoom-${roomId}`);
+    });
 
-    socket.on('sendNotification', (data) =>
-      socket.broadcast
-        .to(`userRoom-${data.userId}`)
-        .emit('receiveNotification'),
+    socket.on('sendNotification', ({ userId }) =>
+      socket.broadcast.to(`userRoom-${userId}`).emit('receiveNotification')
     );
 
-    socket.on('sendNewPost', async (data) => {
+    socket.on('sendNewPost', async ({ userId }) => {
       const user = await prisma.user.findUnique({
-        where: { id: data.userId },
+        where: { id: userId },
         include: { followers: true },
       });
 
@@ -30,22 +30,22 @@ function setupSocketIo(server) {
       });
     });
 
-    socket.on('sendIsTyping', (data) =>
+    socket.on('sendIsTyping', ({ isTyping, roomId }) =>
       socket.broadcast
-        .to(`chatRoom-${data.roomId}`)
-        .emit('receiveIsTyping', data.isTyping),
+        .to(`chatRoom-${roomId}`)
+        .emit('receiveIsTyping', isTyping)
     );
 
-    socket.on('submitMessage', (data) =>
-      io.to(`chatRoom-${data.roomId}`).emit('addNewMessage', data.message),
+    socket.on('submitMessage', ({ message, roomId }) =>
+      io.to(`chatRoom-${roomId}`).emit('addNewMessage', message)
     );
 
-    socket.on('updateMessage', (data) =>
-      io.to(`chatRoom-${data.roomId}`).emit('replaceMessage', data.message),
+    socket.on('updateMessage', ({ updatedMessage, roomId }) =>
+      io.to(`chatRoom-${roomId}`).emit('replaceMessage', updatedMessage)
     );
 
-    socket.on('deleteMessage', (data) =>
-      io.to(`chatRoom-${data.roomId}`).emit('removeMessage', data.messageId),
+    socket.on('deleteMessage', ({ deletedMessageId, roomId }) =>
+      io.to(`chatRoom-${roomId}`).emit('removeMessage', deletedMessageId)
     );
   });
 }
