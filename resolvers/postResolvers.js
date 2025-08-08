@@ -1,0 +1,286 @@
+const { PrismaClient } = require('@prisma/client');
+const { GraphQLError } = require('graphql');
+const authenticate = require('../utils/authenticate');
+const {
+  postInclusions,
+  repostInclusions,
+  commentInclusions,
+} = require('../utils/inclusions');
+const getPaginationOptions = require('../utils/paginationOptions');
+const uploadToCloudinary = require('../utils/uploadToCloudinary');
+
+const prisma = new PrismaClient();
+
+const postQueries = {
+  getIndexPosts: authenticate(
+    async (
+      parent,
+      { postCursor, repostCursor, timestamp },
+      { currentUser }
+    ) => {
+      const user = await prisma.user.findUnique({
+        where: { id: currentUser.id },
+        include: { following: true },
+      });
+
+      const followIds = user.following.map((follow) => follow.id);
+
+      function getOptions(isRepost) {
+        let options = {
+          where: { userId: { in: [...followIds, user.id] } },
+          orderBy: { timestamp: 'desc' },
+          include: isRepost ? repostInclusions : postInclusions,
+        };
+
+        if (timestamp) {
+          options.where.timestamp = { gt: new Date(Number(timestamp)) };
+          options.take = 20;
+        } else {
+          options = {
+            ...options,
+            ...getPaginationOptions(isRepost ? repostCursor : postCursor),
+          };
+        }
+
+        return options;
+      }
+
+      const [posts, reposts] = await Promise.all([
+        prisma.post.findMany(getOptions(false)),
+        prisma.repost.findMany(getOptions(true)),
+      ]);
+
+      const feed = [...posts, ...reposts];
+      feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      return feed.slice(0, 20);
+    }
+  ),
+
+  searchPosts: authenticate(async (_, { query, cursor }) => {
+    const posts = await prisma.post.findMany({
+      where: { text: { contains: query, mode: 'insensitive' } },
+      orderBy: [{ likes: { _count: 'desc' } }, { timestamp: 'asc' }],
+      include: postInclusions,
+      ...getPaginationOptions(cursor),
+    });
+
+    return posts;
+  }),
+
+  getPost: authenticate(async (_, { postId, cursor }) => {
+    const post = await prisma.post.findUnique({
+      where: { id: Number(postId) },
+
+      include: {
+        ...postInclusions,
+
+        comments: {
+          where: { parentId: null },
+          orderBy: { timestamp: 'desc' },
+          include: commentInclusions,
+          ...getPaginationOptions(cursor),
+        },
+      },
+    });
+
+    if (!post) {
+      throw new GraphQLError('Post not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    return post;
+  }),
+
+  getUserPosts: authenticate(
+    async (_, { userId, postCursor, repostCursor }) => {
+      const user = await prisma.user.findUnique({
+        where: { id: Number(userId) },
+      });
+
+      if (!user) {
+        throw new GraphQLError('User not found', {
+          extensions: { code: 'NOT_FOUND' },
+        });
+      }
+
+      function getOptions(isRepost) {
+        return {
+          where: { userId: user.id },
+          orderBy: { timestamp: 'desc' },
+          include: isRepost ? repostInclusions : postInclusions,
+          ...getPaginationOptions(isRepost ? repostCursor : postCursor),
+        };
+      }
+
+      const [posts, reposts] = await Promise.all([
+        prisma.post.findMany(getOptions(false)),
+        prisma.repost.findMany(getOptions(true)),
+      ]);
+
+      const feed = [...posts, ...reposts];
+      feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return feed.slice(0, 20);
+    }
+  ),
+
+  getImagePosts: authenticate(async (_, { userId, cursor }) => {
+    const posts = await prisma.post.findMany({
+      where: { userId: Number(userId), NOT: { imageUrl: null } },
+      orderBy: { timestamp: 'desc' },
+      include: postInclusions,
+      ...getPaginationOptions(cursor),
+    });
+
+    return posts;
+  }),
+
+  getLikedPosts: authenticate(async (_, { userId, cursor }) => {
+    const posts = await prisma.post.findMany({
+      where: { likes: { some: { id: Number(userId) } } },
+      orderBy: { timestamp: 'desc' },
+      include: postInclusions,
+      ...getPaginationOptions(cursor),
+    });
+
+    return posts;
+  }),
+};
+
+const postMutations = {
+  createPost: authenticate(async (_, args, { currentUser }) => {
+    const text = args.text?.trim();
+    const pollChoices = args.pollChoices?.map((choice) => choice.trim());
+    let imageUrl = args.gifUrl?.trim();
+
+    if (pollChoices) {
+      if (pollChoices.some((choice) => choice === '')) {
+        throw new GraphQLError('Choice cannot be empty', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
+
+      if (pollChoices.length < 2 || pollChoices.length > 6) {
+        throw new GraphQLError('Poll must have 2-6 choices', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
+    }
+
+    if (args.image) {
+      imageUrl = await uploadToCloudinary(args.image);
+    }
+
+    const post = await prisma.post.create({
+      include: postInclusions,
+
+      data: {
+        text,
+        imageUrl,
+        user: { connect: { id: currentUser.id } },
+
+        pollChoices: pollChoices && {
+          create: pollChoices.map((choice) => ({ text: choice })),
+        },
+      },
+    });
+
+    return post;
+  }),
+
+  deletePost: authenticate(async (_, { postId }, { currentUser }) => {
+    const post = await prisma.post.findUnique({
+      where: { id: Number(postId) },
+      include: postInclusions,
+    });
+
+    if (!post) {
+      throw new GraphQLError('Post not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (post.userId !== currentUser.id) {
+      throw new GraphQLError('You cannot delete this post', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    await prisma.post.delete({ where: { id: post.id } });
+    return post;
+  }),
+
+  updatePost: authenticate(async (_, args, { currentUser }) => {
+    const text = args.text?.trim();
+    let imageUrl = args.gifUrl?.trim();
+
+    const post = await prisma.post.findUnique({
+      where: { id: Number(args.postId) },
+    });
+
+    if (!post) {
+      throw new GraphQLError('Post not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    if (post.userId !== currentUser.id) {
+      throw new GraphQLError('You cannot update this post', {
+        extensions: { code: 'FORBIDDEN' },
+      });
+    }
+
+    if (args.image) {
+      imageUrl = await uploadToCloudinary(args.image);
+    }
+
+    const updatedPost = await prisma.post.update({
+      where: { id: post.id },
+      data: { text, imageUrl: imageUrl || undefined },
+      include: postInclusions,
+    });
+
+    return updatedPost;
+  }),
+
+  likePost: authenticate(async (_, { postId }, { currentUser }) => {
+    const post = await prisma.post.findUnique({
+      where: { id: Number(postId) },
+      include: { likes: true },
+    });
+
+    if (!post) {
+      throw new GraphQLError('Post not found', {
+        extensions: { code: 'NOT_FOUND' },
+      });
+    }
+
+    let likeAction = 'connect';
+
+    if (post.likes.some((like) => like.id === currentUser.id)) {
+      likeAction = 'disconnect';
+    }
+
+    const updatedPost = await prisma.post.update({
+      where: { id: post.id },
+      include: postInclusions,
+      data: { likes: { [likeAction]: { id: currentUser.id } } },
+    });
+
+    if (likeAction === 'connect' && post.userId !== currentUser.id) {
+      await prisma.notification.create({
+        data: {
+          type: 'like',
+          sourceUser: { connect: { id: currentUser.id } },
+          targetUser: { connect: { id: post.userId } },
+          post: { connect: { id: post.id } },
+        },
+      });
+    }
+
+    return updatedPost;
+  }),
+};
+
+module.exports = { postQueries, postMutations };

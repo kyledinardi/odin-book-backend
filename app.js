@@ -1,45 +1,76 @@
 /* eslint-disable no-console */
-require('./utils/passport');
 const express = require('express');
+const http = require('http');
+const { makeExecutableSchema } = require('@graphql-tools/schema');
+// eslint-disable-next-line import/no-unresolved
+const { ApolloServer } = require('@apollo/server');
+const {
+  default: graphqlUploadExpress,
+} = require('graphql-upload/graphqlUploadExpress.mjs');
+const { expressMiddleware } = require('@apollo/server/express4');
+const {
+  ApolloServerPluginDrainHttpServer,
+} = require('@apollo/server/plugin/drainHttpServer');
+const { PrismaClient } = require('@prisma/client');
+const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');
-const http = require('http');
-const helmet = require('helmet');
-const indexRouter = require('./routes/index');
+const jwt = require('jsonwebtoken');
+const typeDefs = require('./schema');
+const resolvers = require('./resolvers');
+const { PORT, JWT_SECRET } = require('./utils/config');
+require('./utils/passport');
 const { setupSocketIo } = require('./utils/socketIo');
 
-const app = express();
-const server = http.createServer(app);
+async function startServer() {
+  const app = express();
+  const httpServer = http.createServer(app);
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-app.use(helmet());
-app.use(cors());
-app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+  const server = new ApolloServer({
+    schema,
+    csrfPrevention: true,
+    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+  });
 
-app.use('/', indexRouter);
-setupSocketIo(server);
+  await server.start();
+  const prisma = new PrismaClient();
 
-app.use((req, res, next) => {
-  const err = new Error('Endpoint not found');
-  err.status = 404;
-  next(err);
-});
+  app.use(
+    '/',
 
-app.use((err, req, res, next) => {
-  const status = err.status || 500;
-  res.status(status);
+    helmet({
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: false,
+    }),
 
-  const response = {
-    error: {
-      message: err.message,
-      status,
-      stack: err.stack,
-    },
-  };
+    cors(),
+    compression(),
+    express.json(),
+    express.urlencoded({ extended: false }),
+    graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 10 }),
 
-  console.error(response);
-  return res.json(response);
-});
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        const auth = req ? req.headers.authorization : null;
 
-module.exports = server;
+        if (!auth || !auth.toLowerCase().startsWith('bearer ')) {
+          return null;
+        }
+
+        const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET);
+
+        const currentUser = await prisma.user.findUnique({
+          where: { id: decodedToken.id },
+        });
+
+        return { currentUser };
+      },
+    })
+  );
+
+  setupSocketIo(httpServer);
+  httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+startServer();
