@@ -1,0 +1,15 @@
+{
+  "include": ["./src/**/*.ts", "./eslintrc.cjs"],
+
+  "compilerOptions": {
+    "target": "es6",
+    "outDir": "./build",
+    "module": "nodenext",
+    "strict": true,
+    "esModuleInterop": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}
