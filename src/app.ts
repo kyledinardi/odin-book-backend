@@ -1,20 +1,23 @@
-import express from 'express';
-import http from 'http';
-import { makeExecutableSchema } from '@graphql-tools/schema';
+/* eslint-disable no-console */
+import http from 'node:http';
+
 import { ApolloServer } from '@apollo/server';
-import { default as graphqlUploadExpress } from 'graphql-upload/graphqlUploadExpress.mjs';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
-import helmet from 'helmet';
-import cors from 'cors';
+import { makeExecutableSchema } from '@graphql-tools/schema';
 import compression from 'compression';
+import cors from 'cors';
+import express from 'express';
+import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs';
+import helmet from 'helmet';
 import jwt from 'jsonwebtoken';
-import { GraphQLError } from 'graphql';
-import './utils/passport';
-import typeDefs from './schema';
+
+import gitHubRouter from './gitHubRouter';
 import resolvers from './resolvers';
-import { PORT, JWT_SECRET } from './utils/config';
+import typeDefs from './schema';
+import { JWT_SECRET, PORT } from './utils/config';
 import parseJWTPayload from './utils/parseJwtPayload';
+import './utils/passport';
 import setupSocketIo from './utils/socketIo';
 
 const startServer = async () => {
@@ -29,6 +32,7 @@ const startServer = async () => {
   });
 
   await server.start();
+  app.use('/auth/github', gitHubRouter);
 
   app.use(
     '/',
@@ -48,14 +52,8 @@ const startServer = async () => {
       context: async ({ req }) => {
         const auth = req?.headers.authorization;
 
-        if (!auth || !auth.toLowerCase().startsWith('bearer ')) {
+        if (!auth?.toLowerCase().startsWith('bearer ')) {
           return {};
-        }
-
-        if (!JWT_SECRET) {
-          throw new GraphQLError('JWT_SECRET is not defined', {
-            extensions: { code: 'INTERNAL_SERVER_ERROR' },
-          });
         }
 
         const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET);
@@ -64,14 +62,13 @@ const startServer = async () => {
           currentUser: { id: parseJWTPayload(decodedToken) },
         });
       },
-    })
+    }),
   );
 
   setupSocketIo(httpServer);
   httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 };
 
-startServer().catch((error) => {
-  console.error(error);
-  process.exit(1);
+startServer().catch((error: Error) => {
+  throw new Error(error.message);
 });

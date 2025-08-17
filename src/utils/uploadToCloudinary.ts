@@ -1,9 +1,12 @@
-import { FileUpload } from 'graphql-upload/processRequest.mjs';
-import path from 'path';
-import { createWriteStream, unlink } from 'fs';
+import { createWriteStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
+import path from 'node:path';
+
 import { v2 as cloudinary } from 'cloudinary';
 
-const uploadToCloudinary = async (filePromise: Promise<FileUpload>) => {
+import type { FileUpload } from 'graphql-upload/processRequest.mjs';
+
+const uploadToCloudinary = async (filePromise: Promise<FileUpload>): Promise<string> => {
   const image = await filePromise;
   const stream = image.createReadStream();
   const storedFileName = `${Date.now()}-${image.filename}`;
@@ -13,17 +16,16 @@ const uploadToCloudinary = async (filePromise: Promise<FileUpload>) => {
     const writeStream = createWriteStream(storedFileUrl);
     writeStream.on('finish', resolve);
 
-    writeStream.on('error', (err) => {
-      unlink(storedFileUrl, () => {
-        reject(err);
-      });
+    writeStream.on('error', async (err) => {
+      await unlink(storedFileUrl);
+      reject(err);
     });
 
     stream.pipe(writeStream);
   });
 
   const result = await cloudinary.uploader.upload(storedFileUrl);
-  unlink(storedFileUrl, () => {});
+  await unlink(storedFileUrl);
   return result.secure_url;
 };
 

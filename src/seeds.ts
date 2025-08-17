@@ -1,7 +1,10 @@
-import bcrypt from 'bcryptjs';
+/* eslint-disable no-await-in-loop */
+/* eslint-disable no-console */
+import Crypto from 'node:crypto';
+
 import { faker } from '@faker-js/faker';
-import Crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 const getDate = (billionMs: number) => Date.now() - billionMs * 1_000_000_000;
@@ -59,12 +62,12 @@ const main = async () => {
         data: {
           displayName,
           username,
-          passwordHash: crypto.randomUUID(),
+          passwordHash: Crypto.randomUUID(),
           pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
           bio: faker.person.bio(),
           joinDate: faker.date.between({ from: getDate(50), to: getDate(20) }),
         },
-      })
+      }),
     );
   }
 
@@ -85,7 +88,7 @@ const main = async () => {
           room: { connect: { id: 1 } },
           timestamp: faker.date.between({ from: getDate(1), to: getDate(0) }),
         },
-      })
+      }),
     );
   }
 
@@ -106,7 +109,7 @@ const main = async () => {
         data: {
           following: { connect: { id: randomId2 } },
         },
-      })
+      }),
     );
   }
 
@@ -121,7 +124,7 @@ const main = async () => {
           timestamp: faker.date.between({ from: getDate(20), to: getDate(10) }),
           user: { connect: { id: rng(100) } },
         },
-      })
+      }),
     );
   }
 
@@ -137,7 +140,7 @@ const main = async () => {
           user: { connect: { id: rng(100) } },
           post: { connect: { id: rng(200) } },
         },
-      })
+      }),
     );
   }
 
@@ -172,7 +175,7 @@ const main = async () => {
       prisma.post.update({
         where: { id: rng(200) },
         data: { likes: { connect: { id: rng(100) } } },
-      })
+      }),
     );
   }
 
@@ -184,7 +187,7 @@ const main = async () => {
       prisma.comment.update({
         where: { id: rng(600) },
         data: { likes: { connect: { id: rng(100) } } },
-      })
+      }),
     );
   }
 
@@ -197,8 +200,7 @@ main()
   .then(async () => {
     await prisma.$disconnect();
   })
-  .catch(async (e) => {
-    console.error(e);
+  .catch(async (err: Error) => {
     await prisma.$disconnect();
-    process.exit(1);
+    throw new Error(err.message);
   });

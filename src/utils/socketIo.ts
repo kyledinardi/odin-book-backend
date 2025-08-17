@@ -1,19 +1,25 @@
-import http from 'http';
-import { Server } from 'socket.io';
 import { PrismaClient } from '@prisma/client';
+import { Server } from 'socket.io';
+
 import { FRONTEND_URL } from './config';
+
+import type http from 'node:http';
 
 const prisma = new PrismaClient();
 
-const setupSocketIo = (server: http.Server) => {
+const setupSocketIo = (server: http.Server): void => {
   const io = new Server(server, { cors: { origin: FRONTEND_URL } });
 
   io.on('connection', (socket) => {
-    socket.on('joinUserRoom', (userId) => socket.join(`userRoom-${userId}`));
-    socket.on('joinChatRoom', (roomId) => socket.join(`chatRoom-${roomId}`));
+    socket.on('joinUserRoom', async (userId) =>
+      socket.join(`userRoom-${userId}`),
+    );
+    socket.on('joinChatRoom', async (roomId) =>
+      socket.join(`chatRoom-${roomId}`),
+    );
 
     socket.on('sendNotification', ({ userId }) =>
-      socket.broadcast.to(`userRoom-${userId}`).emit('receiveNotification')
+      socket.broadcast.to(`userRoom-${userId}`).emit('receiveNotification'),
     );
 
     socket.on('sendNewPost', async ({ userId }: { userId: number }) => {
@@ -36,19 +42,19 @@ const setupSocketIo = (server: http.Server) => {
     socket.on('sendIsTyping', ({ isTyping, roomId }) =>
       socket.broadcast
         .to(`chatRoom-${roomId}`)
-        .emit('receiveIsTyping', isTyping)
+        .emit('receiveIsTyping', isTyping),
     );
 
     socket.on('submitMessage', ({ message, roomId }) =>
-      io.to(`chatRoom-${roomId}`).emit('addNewMessage', message)
+      io.to(`chatRoom-${roomId}`).emit('addNewMessage', message),
     );
 
     socket.on('updateMessage', ({ updatedMessage, roomId }) =>
-      io.to(`chatRoom-${roomId}`).emit('replaceMessage', updatedMessage)
+      io.to(`chatRoom-${roomId}`).emit('replaceMessage', updatedMessage),
     );
 
     socket.on('deleteMessage', ({ deletedMessageId, roomId }) =>
-      io.to(`chatRoom-${roomId}`).emit('removeMessage', deletedMessageId)
+      io.to(`chatRoom-${roomId}`).emit('removeMessage', deletedMessageId),
     );
   });
 };

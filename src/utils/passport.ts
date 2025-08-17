@@ -1,15 +1,17 @@
-import passport from 'passport';
-import bcrypt from 'bcryptjs';
-// import Crypto from 'crypto';
-import { Strategy as LocalStrategy } from 'passport-local';
-// import { Strategy as GitHubStrategy } from 'passport-github2';
-import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
+import Crypto from 'node:crypto';
+
 import { PrismaClient } from '@prisma/client';
-import {
-  /*GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET,*/ JWT_SECRET,
-} from './config';
-import { JwtPayload } from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import passport from 'passport';
+import { Strategy as GitHubStrategy } from 'passport-github2';
+import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt';
+import { Strategy as LocalStrategy } from 'passport-local';
+
+import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, JWT_SECRET } from './config';
 import parseJWTPayload from './parseJwtPayload';
+
+import type { JwtPayload } from 'jsonwebtoken';
+import type { VerifyCallback } from 'passport-oauth2';
 
 const prisma = new PrismaClient();
 
@@ -19,81 +21,88 @@ passport.use(
       const user = await prisma.user.findUnique({ where: { username } });
 
       if (!user) {
-        return done(null, false, { message: 'Username does not exist' });
+        done(null, false, { message: 'Username does not exist' });
+        return;
       }
 
       if (typeof user.passwordHash !== 'string') {
-        return done(null, false, { message: 'Password does not exist' });
+        done(null, false, { message: 'Password does not exist' });
+        return;
       }
 
       const match = await bcrypt.compare(password, user.passwordHash);
 
       if (!match) {
-        return done(null, false, { message: 'Incorrect password' });
+        done(null, false, { message: 'Incorrect password' });
+        return;
       }
 
-      return done(null, user);
+      done(null, user);
     };
 
     handleLocalAuth().catch((err) => done(err));
-  })
+  }),
 );
 
-// passport.use(
-//   new GitHubStrategy(
-//     {
-//       clientID: GITHUB_CLIENT_ID,
-//       clientSecret: GITHUB_CLIENT_SECRET,
-//       callbackUrl: 'http://localhost:3000/auth/github/callback',
-//     },
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: GITHUB_CLIENT_ID,
+      clientSecret: GITHUB_CLIENT_SECRET,
+      callbackURL: 'http://localhost:3000/auth/github/callback',
+    },
 
-//     async (accessToken, refreshToken, profile, done) => {
-//       try {
-//         const { username } = profile;
+    async (
+      _accessToken: string,
+      _refreshToken: string,
+      profile: { id: string; username: string; displayName: string },
+      done: VerifyCallback,
+    ) => {
+      try {
+        const { id, username, displayName } = profile;
 
-//         const existingGitHubUser = await prisma.user.findFirst({
-//           where: { provider: 'GitHub', providerProfileId: profile.id },
-//         });
+        const existingGitHubUser = await prisma.user.findFirst({
+          where: { provider: 'GitHub', providerProfileId: id },
+        });
 
-//         if (existingGitHubUser) {
-//           return done(null, existingGitHubUser);
-//         }
+        if (existingGitHubUser) {
+          done(null, existingGitHubUser);
+          return;
+        }
 
-//         const nonGitHubUser = await prisma.user.findUnique({
-//           where: { username },
-//         });
+        const nonGitHubUser = await prisma.user.findUnique({
+          where: { username },
+        });
 
-//         if (nonGitHubUser) {
-//           return done(null, false, {
-//             message: 'Your GitHub username is already in use',
-//           });
-//         }
+        if (nonGitHubUser) {
+          done(null, false, {
+            message: 'Your GitHub username is already in use',
+          });
 
-//         const usernameHash = Crypto.createHash('sha256')
-//           .update(username.toLowerCase())
-//           .digest('hex');
+          return;
+        }
 
-//         const newUser = await prisma.user.create({
-//           data: {
-//             username,
-//             displayName: profile.displayName,
-//             pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
-//             provider: 'GitHub',
-//             providerProfileId: profile.id,
-//           },
-//         });
+        const usernameHash = Crypto.createHash('sha256')
+          .update(username.toLowerCase())
+          .digest('hex');
 
-//         return done(null, newUser);
-//       } catch (err) {
-//         return done(err);
-//       }
-//     }
-//   )
-// );
+        const newUser = await prisma.user.create({
+          data: {
+            username,
+            displayName,
+            pfpUrl: `https://www.gravatar.com/avatar/${usernameHash}?d=identicon`,
+            provider: 'GitHub',
+            providerProfileId: id,
+          },
+        });
 
-if (typeof JWT_SECRET !== 'string') {
-  throw new Error('JWT_SECRET is not defined');
-}
+        done(null, newUser);
+      } catch (err) {
+        done(err);
+      }
+    },
+  ),
+);
 
 passport.use(
   new JwtStrategy(
@@ -108,10 +117,10 @@ passport.use(
           where: { id: parseJWTPayload(jwtPayload) },
         });
 
-        return done(null, user || false);
+        done(null, user ?? false);
       };
 
       handleJwtAuth().catch((err) => done(err));
-    }
-  )
+    },
+  ),
 );
