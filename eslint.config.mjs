@@ -25,7 +25,7 @@ const typescriptConfig = [
 
   ...tseslint.config(
     tseslint.configs.recommendedTypeChecked,
-    { ignores: ['eslint.config.mjs'] },
+    { ignores: ['eslint.config.mjs', './build'] },
 
     {
       languageOptions: {

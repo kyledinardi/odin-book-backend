@@ -41,7 +41,7 @@ const typeDefs = `
     provider: String
     providerProfileId: String
     following: [User]
-    _count: UserCounts!
+    _count: UserCounts
   }
 
   type Post {
@@ -129,7 +129,7 @@ const typeDefs = `
     user: User!
     userId: Int!
     room: Room!
-    roomId: Int
+    roomId: Int!
   }
 
   union PostOrRepost = Post | Repost
@@ -153,9 +153,6 @@ const typeDefs = `
 
     getComment(commentId: ID!, cursor: ID): Comment
     getUserComments(userId: ID!, cursor: ID): [Comment]
-    getPostComments(postId: ID!, commentId: ID): [Comment]
-    getReplies(commentId: ID!, replyId: ID): [Comment]
-
     getAllRooms(cursor: ID): [Room]
     getRoom(roomId: ID!, cursor: ID): Room
     getNotifications(cursor: ID, timestamp: String): [Notification]

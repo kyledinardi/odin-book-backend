@@ -1,5 +1,5 @@
 const getPaginationOptions = (
-  id: string,
+  id?: string,
 ): { take: number; cursor?: { id: number }; skip: number } => ({
   take: 20,
   cursor: id ? { id: Number(id) } : undefined,

@@ -1,6 +1,4 @@
 {
-  "include": ["./src/**/*.ts", "./eslint.config.mjs"],
-
   "compilerOptions": {
     "target": "es6",
     "outDir": "./build",

@@ -37,8 +37,8 @@ model User {
 model Post {
   id            Int            @id @default(autoincrement())
   timestamp     DateTime       @default(now())
-  text          String
   feedItemType  String         @default("post")
+  text          String?
   imageUrl      String?
   user          User           @relation("postAuthor", fields: [userId], references: [id], onDelete: Cascade)
   userId        Int
@@ -60,8 +60,8 @@ model Choice {
 model Comment {
   id            Int            @id @default(autoincrement())
   timestamp     DateTime       @default(now())
-  text          String
   feedItemType  String         @default("comment")
+  text          String?
   imageUrl      String?
   user          User           @relation("commentAuthor", fields: [userId], references: [id], onDelete: Cascade)
   userId        Int
@@ -112,7 +112,7 @@ model Room {
 model Message {
   id        Int      @id @default(autoincrement())
   timestamp DateTime @default(now())
-  text      String
+  text      String?
   imageUrl  String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int

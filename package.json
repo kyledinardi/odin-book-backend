@@ -4,10 +4,11 @@
   "private": true,
   "main": "app.js",
   "scripts": {
-    "start": "NODE_ENV=production node ./app.js",
-    "dev": " NODE_ENV=development node --watch ./app.js",
-    "reset": "npx prisma migrate reset && node seeds.js && npm run dev",
-    "migrate": "npx prisma migrate reset && npx prisma migrate dev && node seeds.js && npm run dev"
+    "start": "NODE_ENV=production node ./build/app.js",
+    "dev": " NODE_ENV=development ts-node-dev src/app.ts",
+    "seed": "ts-node-dev src/seeds.ts",
+    "reset": "npx prisma migrate reset && npm run seed && npm run dev",
+    "migrate": "npx prisma migrate reset && npx prisma migrate dev && npm run seed && npm run dev"
   },
   "devDependencies": {
     "@eslint/compat": "^1.3.2",

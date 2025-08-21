@@ -51,14 +51,13 @@ passport.use(
       clientSecret: GITHUB_CLIENT_SECRET,
       callbackURL: 'http://localhost:3000/auth/github/callback',
     },
-
-    async (
+    (
       _accessToken: string,
       _refreshToken: string,
       profile: { id: string; username: string; displayName: string },
       done: VerifyCallback,
     ) => {
-      try {
+      const handleGitHubAuth = async () => {
         const { id, username, displayName } = profile;
 
         const existingGitHubUser = await prisma.user.findFirst({
@@ -97,9 +96,9 @@ passport.use(
         });
 
         done(null, newUser);
-      } catch (err) {
-        done(err);
-      }
+      };
+
+      handleGitHubAuth().catch((err) => done(err));
     },
   ),
 );

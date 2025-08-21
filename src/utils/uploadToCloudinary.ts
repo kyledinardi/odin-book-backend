@@ -3,10 +3,13 @@ import { unlink } from 'node:fs/promises';
 import path from 'node:path';
 
 import { v2 as cloudinary } from 'cloudinary';
+import { GraphQLError } from 'graphql';
 
 import type { FileUpload } from 'graphql-upload/processRequest.mjs';
 
-const uploadToCloudinary = async (filePromise: Promise<FileUpload>): Promise<string> => {
+const uploadToCloudinary = async (
+  filePromise: Promise<FileUpload>,
+): Promise<string> => {
   const image = await filePromise;
   const stream = image.createReadStream();
   const storedFileName = `${Date.now()}-${image.filename}`;
@@ -16,9 +19,21 @@ const uploadToCloudinary = async (filePromise: Promise<FileUpload>): Promise<str
     const writeStream = createWriteStream(storedFileUrl);
     writeStream.on('finish', resolve);
 
-    writeStream.on('error', async (err) => {
-      await unlink(storedFileUrl);
-      reject(err);
+    writeStream.on('error', (err) => {
+      const handleWriteStreamError = async () => {
+        await unlink(storedFileUrl);
+        reject(err);
+      };
+
+      handleWriteStreamError().catch(async (error) => {
+        await unlink(storedFileUrl);
+
+        if (error instanceof Error) {
+          throw new GraphQLError(error.message, {
+            extensions: { code: 'INTERNAL_SERVER_ERROR' },
+          });
+        }
+      });
     });
 
     stream.pipe(writeStream);

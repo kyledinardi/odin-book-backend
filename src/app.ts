@@ -59,7 +59,7 @@ const startServer = async () => {
         const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET);
 
         return Promise.resolve({
-          currentUser: { id: parseJWTPayload(decodedToken) },
+          currentUserId: parseJWTPayload(decodedToken),
         });
       },
     }),
