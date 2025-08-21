@@ -1,10 +1,8 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
 
 import { FRONTEND_URL, JWT_SECRET } from './utils/config';
-
-import type { RequestHandler } from 'express';
 
 const gitHubRouter = express.Router();
 gitHubRouter.get('/', [
@@ -15,6 +13,7 @@ gitHubRouter.get('/callback', (req, res, next) => {
   const githubAuthMiddleware = passport.authenticate(
     'github',
     { session: false },
+
     (
       err: Error,
       user: { id: string; username: string; displayName: string },
@@ -37,7 +36,6 @@ gitHubRouter.get('/callback', (req, res, next) => {
         }
 
         const token = jwt.sign(user, JWT_SECRET);
-
         res.redirect(`${FRONTEND_URL}/login?token=${token}&userId=${user.id}`);
       });
     },

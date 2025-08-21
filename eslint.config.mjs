@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import { includeIgnoreFile } from '@eslint/compat';
 import js from '@eslint/js';
+import { globalIgnores } from 'eslint/config';
 import { configs, plugins, rules } from 'eslint-config-airbnb-extended';
 import { rules as prettierConfigRules } from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
@@ -23,19 +24,14 @@ const typescriptConfig = [
   plugins.typescriptEslint,
   ...configs.base.typescript,
 
-  ...tseslint.config(
-    tseslint.configs.recommendedTypeChecked,
-    { ignores: ['eslint.config.mjs', './build'] },
-
-    {
-      languageOptions: {
-        parserOptions: {
-          projectService: true,
-          tsconfigRootDir: import.meta.dirname,
-        },
+  ...tseslint.config(tseslint.configs.recommendedTypeChecked, {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
-  ),
+  }),
 ];
 
 const prettierConfig = [
@@ -44,6 +40,7 @@ const prettierConfig = [
 ];
 
 export default [
+  globalIgnores(['build', 'eslint.config.mjs']),
   includeIgnoreFile(gitignorePath),
   ...jsConfig,
   ...nodeConfig,

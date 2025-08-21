@@ -13,7 +13,7 @@ const uploadToCloudinary = async (
   const image = await filePromise;
   const stream = image.createReadStream();
   const storedFileName = `${Date.now()}-${image.filename}`;
-  const storedFileUrl = path.join(__dirname, '../uploads', storedFileName);
+  const storedFileUrl = path.join(__dirname, '../../uploads', storedFileName);
 
   await new Promise<void>((resolve, reject) => {
     const writeStream = createWriteStream(storedFileUrl);
