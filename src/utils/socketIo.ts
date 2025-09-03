@@ -22,9 +22,9 @@ const setupSocketIo = (server: http.Server): void => {
       socket.broadcast.to(`userRoom-${userId}`).emit('receiveNotification'),
     );
 
-    socket.on('sendNewPost', async ({ userId }: { userId: number }) => {
+    socket.on('sendNewPost', async ({ userId }) => {
       const user = await prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: Number(userId) },
         include: { followers: true },
       });
 

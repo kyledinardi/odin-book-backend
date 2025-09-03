@@ -51,7 +51,7 @@ const typeDefs = `
     feedItemType: String!
     imageUrl: String
     user: User!
-    userId: Int!
+    userId: ID!
     likes: [User]
     pollChoices: [Choice]
     comments: [Comment]
@@ -63,7 +63,7 @@ const typeDefs = `
     id: ID!
     text: String!
     post: Post!
-    postId: Int!
+    postId: ID!
     votes: [User]
   }
 
@@ -74,11 +74,11 @@ const typeDefs = `
     feedItemType: String!
     imageUrl: String
     user: User!
-    userId: Int!
+    userId: ID!
     post: Post!
-    postId: Int!
+    postId: ID!
     parent: Comment
-    parentId: Int
+    parentId: ID
     likes: [User]
     replies: [Comment]
     reposts: [Repost]
@@ -92,11 +92,11 @@ const typeDefs = `
     timestamp: String!
     feedItemType: String!
     user: User!
-    userId: Int!
+    userId: ID!
     post: Post
-    postId: Int
+    postId: ID
     comment: Comment
-    commentId: Int
+    commentId: ID
   }
 
   type Notification {
@@ -105,13 +105,13 @@ const typeDefs = `
     type: String!
     isRead: Boolean
     sourceUser: User!
-    sourceUserId: Int!
+    sourceUserId: ID!
     targetUser: User!
-    targetUserId: Int!
+    targetUserId: ID!
     post: Post
-    postId: Int
+    postId: ID
     comment: Comment
-    commentId: Int
+    commentId: ID
   }
 
   type Room {
@@ -127,9 +127,9 @@ const typeDefs = `
     text: String!
     imageUrl: String
     user: User!
-    userId: Int!
+    userId: ID!
     room: Room!
-    roomId: Int!
+    roomId: ID!
   }
 
   union PostOrRepost = Post | Repost

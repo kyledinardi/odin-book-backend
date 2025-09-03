@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import http from 'node:http';
 
 import { ApolloServer } from '@apollo/server';
@@ -66,6 +65,7 @@ const startServer = async () => {
   );
 
   setupSocketIo(httpServer);
+  // eslint-disable-next-line no-console
   httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 };
 
